@@ -7,13 +7,13 @@ import {
   Target,
   TrendingUp,
   User,
-  LogOut,
   CreditCard,
   QrCode,
-  Salad,
   Bell,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { AccountDropdown } from "@/components/shared/account-dropdown";
+import { MemberMobileNav } from "@/components/member/member-mobile-nav";
 
 export default async function MemberLayout({
   children,
@@ -44,13 +44,13 @@ export default async function MemberLayout({
 
   const isPtMember = member?.member_type === "PT";
   const gymName = (profile as any)?.gyms?.name || "ARK FIT";
-  const initials = profile?.full_name?.slice(0, 2).toUpperCase() || "MB";
 
   const navItems = [
     { label: "Home", href: "/member", icon: Home },
     { label: "Workout", href: "/member/workout", icon: Dumbbell },
     ...(isPtMember ? [{ label: "PT Sessions", href: "/member/pt", icon: Target, isPt: true }] : []),
     { label: "Progress", href: "/member/progress", icon: TrendingUp },
+    { label: "Billing", href: "/member/payments", icon: CreditCard },
     { label: "Profile", href: "/member/profile", icon: User },
   ];
 
@@ -78,6 +78,7 @@ export default async function MemberLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className="flex items-center gap-3 px-3 py-2 rounded text-slate-600 font-medium text-xs hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
                   <Icon className="w-4 h-4 text-slate-500" />
@@ -93,17 +94,18 @@ export default async function MemberLayout({
           </nav>
         </div>
 
-        {/* Footer / Sign Out */}
-        <div className="pt-3 border-t border-slate-200">
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded text-slate-500 font-medium text-xs hover:text-rose-600 hover:bg-rose-50 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </form>
+        {/* Footer / Account Dropdown */}
+        <div className="pt-3 border-t border-slate-200 px-1">
+          <AccountDropdown
+            user={{ id: user.id, email: user.email }}
+            profile={{
+              full_name: profile.full_name,
+              role: "MEMBER",
+              member_type: member?.member_type as any,
+            }}
+            gymName={gymName}
+            branchName={isPtMember ? "PT Athlete" : "Member"}
+          />
         </div>
       </aside>
 
@@ -112,8 +114,16 @@ export default async function MemberLayout({
         {/* Top Bar Component */}
         <header className="h-14 w-full bg-white border-b border-slate-200 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Mobile Brand */}
+            <div className="lg:hidden flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-[#1E40AF] text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                A
+              </div>
+              <span className="text-sm font-bold text-[#1E40AF]">ARK FIT</span>
+            </div>
+
             {/* Membership Status Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
               <span className="text-xs font-semibold text-emerald-700">
                 Membership: Active (Expires {formatDate(member?.membership_expiry)})
@@ -138,41 +148,28 @@ export default async function MemberLayout({
 
             <div className="h-5 w-px bg-slate-200"></div>
 
-            {/* Profile Avatar Badge */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-[#1E40AF] text-white flex items-center justify-center text-xs font-bold">
-                {initials}
-              </div>
-              <div className="hidden sm:block text-left leading-tight">
-                <p className="text-xs font-semibold text-slate-900">{profile?.full_name}</p>
-                <p className="text-[10px] text-slate-500">{isPtMember ? "PT Athlete" : "General Member"}</p>
-              </div>
-            </div>
+            {/* Interactive Account Dropdown */}
+            <AccountDropdown
+              user={{ id: user.id, email: user.email }}
+              profile={{
+                full_name: profile.full_name,
+                role: "MEMBER",
+                member_type: member?.member_type as any,
+              }}
+              gymName={gymName}
+              branchName={isPtMember ? "PT Athlete" : "Member"}
+            />
           </div>
         </header>
 
-        {/* Main Content Canvas */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-20 lg:pb-8">
+        {/* Main Content Canvas with safe mobile bottom bar padding */}
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
 
-      {/* Mobile-first Bottom Navigation (for sm/md screens) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 border-t border-slate-200 bg-white px-2 flex items-center justify-around z-50 shadow-lg">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center gap-1 text-slate-600 hover:text-[#1E40AF] px-3 py-1 transition-colors"
-            >
-              <Icon className="w-4 h-4" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Mobile-first Bottom Navigation with active indicators */}
+      <MemberMobileNav isPtMember={isPtMember} />
     </div>
   );
 }

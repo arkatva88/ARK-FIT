@@ -55,26 +55,7 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
       const scriptLoaded = await loadRazorpayScript();
 
       if (!scriptLoaded || !window.Razorpay) {
-        // Fallback demo simulator if script is blocked in restricted dev sandbox
-        console.warn("Razorpay script not loaded directly, using direct server verification demo");
-        const verifyRes = await fetch("/api/payments/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            razorpay_order_id: orderData.orderId,
-            razorpay_payment_id: `pay_${Date.now()}`,
-            razorpay_signature: "mock_signature",
-          }),
-        });
-
-        if (verifyRes.ok) {
-          setSuccess(true);
-          setTimeout(() => {
-            router.refresh();
-            setSuccess(false);
-          }, 1500);
-          return;
-        }
+        throw new Error("Unable to load Razorpay Checkout gateway. Please check your internet connection or ad-blocker.");
       }
 
       // 3. Open Razorpay Checkout modal

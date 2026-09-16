@@ -9,11 +9,12 @@ import {
   Salad,
   TrendingUp,
   FileText,
-  LogOut,
   Search,
   Bell,
   CheckSquare,
 } from "lucide-react";
+import { AccountDropdown } from "@/components/shared/account-dropdown";
+import { TrainerMobileNav } from "@/components/trainer/trainer-mobile-nav";
 
 export default async function TrainerLayout({
   children,
@@ -71,6 +72,7 @@ export default async function TrainerLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className="flex items-center gap-3 px-3 py-2 rounded text-slate-600 font-medium text-xs hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
                   <Icon className="w-4 h-4 text-slate-500" />
@@ -81,7 +83,7 @@ export default async function TrainerLayout({
           </nav>
         </div>
 
-        {/* Quick Action & Footer */}
+        {/* Quick Action & Account Menu */}
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-3">
           <Link
             href="/trainer/pt-sessions"
@@ -91,15 +93,14 @@ export default async function TrainerLayout({
             <span>Floor Check-in</span>
           </Link>
 
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-3 py-1.5 rounded text-slate-500 font-medium text-xs hover:text-rose-600 hover:bg-rose-50 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </form>
+          <div className="px-1">
+            <AccountDropdown
+              user={{ id: user.id, email: user.email }}
+              profile={{ full_name: profile.full_name, role: "TRAINER" }}
+              gymName={gymName}
+              branchName="Floor Coach"
+            />
+          </div>
         </div>
       </aside>
 
@@ -107,6 +108,11 @@ export default async function TrainerLayout({
       <header className="sticky top-0 z-30 flex justify-between items-center h-14 bg-white border-b border-slate-200 px-4 sm:px-6 lg:ml-60">
         {/* Left: Search Box */}
         <div className="flex items-center gap-3 w-64 sm:w-80">
+          <div className="lg:hidden flex items-center gap-2 mr-2">
+            <div className="w-7 h-7 rounded bg-[#1E40AF] text-white font-bold text-xs flex items-center justify-center shadow-sm">
+              A
+            </div>
+          </div>
           <div className="relative w-full">
             <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
             <input
@@ -131,23 +137,23 @@ export default async function TrainerLayout({
 
           <div className="h-5 w-px bg-slate-200"></div>
 
-          {/* Trainer Avatar & Name */}
-          <div className="flex items-center gap-2 pl-1">
-            <div className="w-8 h-8 rounded bg-[#1E40AF] text-white flex items-center justify-center font-bold text-xs">
-              {profile?.full_name?.slice(0, 2).toUpperCase() || "TR"}
-            </div>
-            <div className="hidden md:block text-left leading-tight">
-              <div className="text-xs font-semibold text-slate-900">{profile?.full_name}</div>
-              <div className="text-[10px] text-slate-500">Coach</div>
-            </div>
-          </div>
+          {/* Interactive Account Dropdown */}
+          <AccountDropdown
+            user={{ id: user.id, email: user.email }}
+            profile={{ full_name: profile.full_name, role: "TRAINER" }}
+            gymName={gymName}
+            branchName="Floor Coach"
+          />
         </div>
       </header>
 
-      {/* MAIN CANVAS */}
-      <main className="lg:ml-60 flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* MAIN CANVAS with safe mobile bottom bar padding */}
+      <main className="lg:ml-60 flex-1 p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-8">
         {children}
       </main>
+
+      {/* Mobile Bottom Navigation for Trainers */}
+      <TrainerMobileNav gymName={gymName} />
     </div>
   );
 }

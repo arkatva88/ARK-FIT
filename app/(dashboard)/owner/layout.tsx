@@ -11,11 +11,10 @@ import {
   Dumbbell,
   BarChart3,
   Settings,
-  LogOut,
   Search,
-  Bell,
-  HelpCircle,
 } from "lucide-react";
+import { AccountDropdown } from "@/components/shared/account-dropdown";
+import { OwnerMobileNav } from "@/components/owner/owner-mobile-nav";
 
 export default async function OwnerLayout({
   children,
@@ -38,7 +37,6 @@ export default async function OwnerLayout({
   }
 
   const gymName = (profile as any)?.gyms?.name || "ARK FIT";
-  const initials = profile?.full_name?.slice(0, 2).toUpperCase() || "OW";
 
   const navItems = [
     { label: "Dashboard", href: "/owner", icon: LayoutDashboard },
@@ -80,6 +78,7 @@ export default async function OwnerLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className="flex items-center gap-3 px-3 py-2 rounded text-xs font-medium text-[#444653] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-colors"
                 >
                   <Icon className="w-4 h-4 text-[#64748B] shrink-0" />
@@ -90,22 +89,16 @@ export default async function OwnerLayout({
           </nav>
         </div>
 
-        {/* Footer Support & Sign Out */}
-        <div className="flex flex-col gap-1 pt-3 border-t border-[#E2E8F0]">
-          <div className="px-3 py-1 text-[11px] text-[#64748B] flex items-center justify-between">
-            <span className="font-semibold text-[#0F172A] truncate">{profile.full_name}</span>
-            <span className="text-[10px] bg-blue-50 text-[#1E40AF] px-1.5 py-0.5 rounded font-bold">Owner</span>
+        {/* Footer Support & Identity */}
+        <div className="flex flex-col gap-2 pt-3 border-t border-[#E2E8F0]">
+          <div className="px-1">
+            <AccountDropdown
+              user={{ id: user.id, email: user.email }}
+              profile={{ full_name: profile.full_name, role: "OWNER" }}
+              gymName={gymName}
+              branchName="Koramangala Branch"
+            />
           </div>
-
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-xs text-[#BE123C] hover:bg-[#FFF1F2] transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
-          </form>
         </div>
       </aside>
 
@@ -115,7 +108,7 @@ export default async function OwnerLayout({
         <header className="flex justify-between items-center w-full px-4 lg:px-8 h-14 sticky top-0 z-30 bg-white border-b border-[#E2E8F0]">
           <div className="flex items-center gap-4 flex-1 max-w-md">
             <div className="lg:hidden flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-[#1E40AF] flex items-center justify-center text-white font-bold text-xs">
+              <div className="w-7 h-7 rounded bg-[#1E40AF] flex items-center justify-center text-white font-bold text-xs shadow-sm">
                 A
               </div>
               <span className="text-sm font-bold text-[#1E40AF]">ARK FIT</span>
@@ -147,20 +140,26 @@ export default async function OwnerLayout({
               <span>New Collection</span>
             </Link>
 
-
             <div className="h-4 w-px bg-[#E2E8F0]" />
 
-            <div className="w-8 h-8 rounded-full bg-[#DBEAFE] border border-[#CBD5E1] flex items-center justify-center font-bold text-xs text-[#1E40AF]">
-              {initials}
-            </div>
+            {/* Interactive Profile Dropdown */}
+            <AccountDropdown
+              user={{ id: user.id, email: user.email }}
+              profile={{ full_name: profile.full_name, role: "OWNER" }}
+              gymName={gymName}
+              branchName="Koramangala Branch"
+            />
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6">
+        {/* Page Content with safe padding for mobile bottom bar */}
+        <main className="flex-1 p-4 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation with drawer */}
+      <OwnerMobileNav gymName={gymName} />
     </div>
   );
 }
