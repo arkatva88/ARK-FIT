@@ -38,14 +38,43 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
+  const isPost = request.method === "POST";
+  const hasRazorpaySignature = request.headers.has("x-razorpay-signature");
+
+  // 1. Webhook Fast-Path & Rewriting:
+  // If Razorpay posts to https://ark-fit-theta.vercel.app/ (as configured in dashboard) or with signature,
+  // rewrite directly to the webhook handler and bypass all auth checks.
+  if ((path === "/" && isPost) || hasRazorpaySignature || path === "/api/payments/webhook") {
+    if (path !== "/api/payments/webhook") {
+      const webhookUrl = new URL("/api/payments/webhook", request.url);
+      return NextResponse.rewrite(webhookUrl, {
+        request: {
+          headers: request.headers,
+        },
+      });
+    }
+    return NextResponse.next();
+  }
+
+  // 2. Fast-path for other API routes (no UI redirects)
+  if (path.startsWith("/api/")) {
+    return NextResponse.next();
+  }
 
   // Protected route prefixes
   const isOwnerRoute = path.startsWith("/owner");
   const isTrainerRoute = path.startsWith("/trainer");
   const isMemberRoute = path.startsWith("/member");
   const isProtectedRoute = isOwnerRoute || isTrainerRoute || isMemberRoute;
+  const isAuthPage = path === "/login" || path === "/change-password";
+
+  // If not accessing protected routes or auth pages, skip auth lookups
+  if (!isProtectedRoute && !isAuthPage) {
+    return response;
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
 
   // If unauthenticated and accessing protected routes
   if (isProtectedRoute && !user) {

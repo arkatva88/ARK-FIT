@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Phone, Users, Target, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { MemberClientModal } from "@/components/owner/member-client-modal";
+import { TrainerActionsModal } from "@/components/owner/trainer-actions-modal";
 
 export default async function OwnerTrainersPage() {
   const supabase = createClient();

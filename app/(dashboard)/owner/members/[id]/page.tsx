@@ -4,6 +4,8 @@ import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { ArrowLeft, Phone } from "lucide-react";
 import { MemberProfileTabs } from "@/components/owner/member-profile-tabs";
+import { EditMemberModal } from "@/components/owner/edit-member-modal";
+import { DeleteMemberButton } from "@/components/owner/delete-member-button";
 
 interface PageProps {
   params: { id: string };
@@ -26,7 +28,9 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
       emergency_contact,
       medical_conditions,
       created_at,
+      assigned_trainer_id,
       profiles (
+        id,
         full_name,
         phone,
         avatar_url,
@@ -59,7 +63,8 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
     { data: dietPlans },
     { data: progressRecords },
     { data: progressPhotos },
-    { data: memberNotes }
+    { data: memberNotes },
+    { data: gymTrainers }
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -131,7 +136,11 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
         )
       `)
       .eq("member_id", memberId)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("trainers")
+      .select("id, profiles(full_name)")
+      .eq("is_active", true)
   ]);
 
   const presentCount = attendanceList?.filter((a) => a.status === "PRESENT").length || 0;
@@ -204,21 +213,28 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
             </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="flex items-center gap-6 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
-            <div className="text-right">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block">Attendance Rate</span>
-              <span className="text-lg font-bold text-slate-900 tabular-nums">{attendanceRate}%</span>
+          {/* Quick Metrics & Member Management Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 block">Attendance Rate</span>
+                <span className="text-lg font-bold text-slate-900 tabular-nums">{attendanceRate}%</span>
+              </div>
+
+              {isPt && activePtPackage && (
+                <div className="text-right pl-6 border-l border-slate-200">
+                  <span className="text-[10px] uppercase font-semibold text-amber-700 block">PT Sessions</span>
+                  <span className="text-lg font-bold text-amber-800 tabular-nums">
+                    {activePtPackage.used_sessions} / {activePtPackage.total_sessions}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {isPt && activePtPackage && (
-              <div className="text-right pl-6 border-l border-slate-200">
-                <span className="text-[10px] uppercase font-semibold text-amber-700 block">PT Sessions</span>
-                <span className="text-lg font-bold text-amber-800 tabular-nums">
-                  {activePtPackage.used_sessions} / {activePtPackage.total_sessions}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 pl-0 sm:pl-4 sm:border-l sm:border-slate-200">
+              <EditMemberModal member={member} trainers={gymTrainers || []} />
+              <DeleteMemberButton memberId={member.id} memberName={profile?.full_name || "Member"} />
+            </div>
           </div>
         </div>
       </div>
