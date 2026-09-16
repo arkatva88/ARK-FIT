@@ -67,8 +67,8 @@ export async function POST(req: Request) {
 
     let razorpayOrderId = `order_${crypto.randomBytes(8).toString("hex")}`;
 
-    // If live credentials are provided, call Razorpay Orders API
-    if (keyId && keySecret && !keyId.includes("placeholder") && !keyId.includes("mock")) {
+    // If credentials are provided, call official Razorpay Orders API
+    if (keyId && keySecret && !keyId.includes("placeholder")) {
       try {
         const authHeader = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
         const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
@@ -91,9 +91,18 @@ export async function POST(req: Request) {
         if (rzpRes.ok) {
           const rzpData = await rzpRes.json();
           razorpayOrderId = rzpData.id;
+        } else {
+          const rzpErrData = await rzpRes.json();
+          return NextResponse.json(
+            { error: rzpErrData.error?.description || "Failed to create payment order with Razorpay" },
+            { status: 502 }
+          );
         }
-      } catch (rzpErr) {
-        console.warn("Razorpay API order creation error, using fallback ID:", rzpErr);
+      } catch (rzpErr: any) {
+        return NextResponse.json(
+          { error: "Payment gateway communication failed: " + (rzpErr.message || "Unknown error") },
+          { status: 502 }
+        );
       }
     }
 

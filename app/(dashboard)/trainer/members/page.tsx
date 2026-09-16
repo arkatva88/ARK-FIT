@@ -19,7 +19,14 @@ export default async function TrainerMembersPage({ searchParams }: PageProps) {
     .eq("profile_id", user?.id)
     .single();
 
-  if (!trainer) return null;
+  if (!trainer) {
+    return (
+      <div className="bg-white p-8 rounded-lg border border-slate-200 text-center">
+        <h2 className="text-base font-semibold text-slate-900">Trainer Profile Inactive</h2>
+        <p className="text-sm text-slate-500 mt-1">Please contact your gym administrator to link your coach account.</p>
+      </div>
+    );
+  }
 
   let memberQuery = supabase
     .from("members")

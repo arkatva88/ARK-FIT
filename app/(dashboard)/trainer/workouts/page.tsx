@@ -32,13 +32,23 @@ export default async function TrainerWorkoutsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <section className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          Workout Library & Form Reference
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Reference exercises, movement instructions, and prescribe splits to your athletes.
-        </p>
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Workout Library & Form Reference
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Reference exercises, movement instructions, and prescribe splits to your athletes.
+          </p>
+        </div>
+
+        <Link
+          href="/trainer/members"
+          className="h-8 px-3.5 rounded bg-[#1E40AF] text-white hover:bg-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm shrink-0"
+        >
+          <Dumbbell className="w-3.5 h-3.5" />
+          <span>Assign Split</span>
+        </Link>
       </section>
 
       {/* Category Pills */}

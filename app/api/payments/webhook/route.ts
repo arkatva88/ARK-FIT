@@ -8,15 +8,32 @@ export async function POST(req: Request) {
     const signature = req.headers.get("x-razorpay-signature");
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    if (webhookSecret && signature) {
-      const expectedSignature = crypto
-        .createHmac("sha256", webhookSecret)
-        .update(rawBody)
-        .digest("hex");
+    if (!webhookSecret) {
+      console.warn("RAZORPAY_WEBHOOK_SECRET not configured on server.");
+      return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+    }
 
-      if (expectedSignature !== signature) {
-        return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
-      }
+    if (!signature) {
+      return NextResponse.json({ error: "Missing x-razorpay-signature header" }, { status: 400 });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(rawBody)
+      .digest("hex");
+
+    let isSignatureValid = false;
+    try {
+      isSignatureValid = crypto.timingSafeEqual(
+        Buffer.from(expectedSignature, "utf-8"),
+        Buffer.from(signature, "utf-8")
+      );
+    } catch {
+      isSignatureValid = false;
+    }
+
+    if (!isSignatureValid) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
     }
 
     const event = JSON.parse(rawBody);
@@ -29,13 +46,14 @@ export async function POST(req: Request) {
       const paymentId = paymentEntity?.id;
 
       if (orderId) {
-        // Find payment record
+        // Fetch existing payment record
         const { data: existingPayment } = await admin
           .from("payments")
           .select("id, status, member_id, membership_id")
           .eq("razorpay_order_id", orderId)
           .single();
 
+        // Ensure idempotency: only update if not already PAID
         if (existingPayment && existingPayment.status !== "PAID") {
           await admin
             .from("payments")
@@ -47,11 +65,23 @@ export async function POST(req: Request) {
             .eq("id", existingPayment.id);
 
           if (existingPayment.membership_id) {
+            const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0];
+
+            await admin
+              .from("memberships")
+              .update({
+                status: "ACTIVE",
+                expiry_date: newExpiry,
+              })
+              .eq("id", existingPayment.membership_id);
+
             await admin
               .from("members")
               .update({
                 status: "ACTIVE",
-                membership_expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                membership_expiry: newExpiry,
               })
               .eq("id", existingPayment.member_id);
           }
@@ -61,6 +91,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ status: "ok" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Webhook processing error" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Webhook processing error" },
+      { status: 500 }
+    );
   }
 }

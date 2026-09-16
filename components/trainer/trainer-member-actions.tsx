@@ -49,9 +49,13 @@ export function TrainerMemberActions({ memberId, workoutPlan, dietPlan }: Traine
       const { data: member } = await supabase.from("members").select("gym_id").eq("id", memberId).single();
       if (!member) throw new Error("Member not found");
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: trainer } = await supabase.from("trainers").select("id").eq("profile_id", user?.id).maybeSingle();
+
       const { error: err } = await supabase.from("member_notes").insert({
         gym_id: member.gym_id,
         member_id: memberId,
+        trainer_id: trainer?.id || null,
         title: noteTitle,
         content: noteContent,
         status: "OPEN",
@@ -111,9 +115,13 @@ export function TrainerMemberActions({ memberId, workoutPlan, dietPlan }: Traine
         { name: "Dinner", time: "08:30 PM", items: dinner.split(",").map((s: string) => s.trim()) },
       ];
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: trainer } = await supabase.from("trainers").select("id").eq("profile_id", user?.id).maybeSingle();
+
       const { error: err } = await supabase.from("diet_plans").insert({
         gym_id: member.gym_id,
         member_id: memberId,
+        trainer_id: trainer?.id || null,
         goal: "MUSCLE_GAIN",
         calories: parseInt(calories, 10),
         protein_grams: parseInt(proteinGrams, 10),
@@ -171,9 +179,13 @@ export function TrainerMemberActions({ memberId, workoutPlan, dietPlan }: Traine
         },
       ];
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: trainer } = await supabase.from("trainers").select("id").eq("profile_id", user?.id).maybeSingle();
+
       const { error: err } = await supabase.from("workout_plans").insert({
         gym_id: member.gym_id,
         member_id: memberId,
+        trainer_id: trainer?.id || null,
         title: workoutTitle,
         days: sampleDays,
         status: "ACTIVE",

@@ -72,15 +72,6 @@ export default async function OwnerLayout({
             </div>
           </div>
 
-          {/* Quick Check-in CTA Button */}
-          <Link
-            href="/owner/attendance"
-            className="w-full h-9 bg-[#1E40AF] text-white rounded text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] transition-colors shadow-sm"
-          >
-            <CalendarCheck className="w-4 h-4" />
-            <span>Quick Check-in</span>
-          </Link>
-
           {/* Navigation Links */}
           <nav className="flex flex-col gap-0.5">
             {navItems.map((item) => {
@@ -156,13 +147,6 @@ export default async function OwnerLayout({
               <span>New Collection</span>
             </Link>
 
-            <Link
-              href="/owner/attendance"
-              className="hidden sm:flex h-8 px-2.5 bg-[#1E40AF] hover:bg-[#1D4ED8] text-white rounded text-xs font-semibold items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <CalendarCheck className="w-3.5 h-3.5" />
-              <span>Quick Check-in</span>
-            </Link>
 
             <div className="h-4 w-px bg-[#E2E8F0]" />
 

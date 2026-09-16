@@ -1,44 +1,78 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
+import { TrendingUp } from "lucide-react";
+
+export const revalidate = 15;
 
 export default async function TrainerProgressPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: trainer } = await supabase.from("trainers").select("id").eq("profile_id", user?.id).single();
-  if (!trainer) return null;
+  const { data: trainer } = await supabase
+    .from("trainers")
+    .select("id")
+    .eq("profile_id", user?.id)
+    .single();
 
-  const { data: records } = await supabase
-    .from("progress_records")
-    .select(`
-      id,
-      recorded_at,
-      weight_kg,
-      chest_inches,
-      waist_inches,
-      arms_inches,
-      bench_press_kg,
-      squat_kg,
-      members!inner (
-        id,
-        assigned_trainer_id,
-        profiles (full_name)
-      )
-    `)
-    .eq("members.assigned_trainer_id", trainer.id)
-    .order("recorded_at", { ascending: false })
-    .limit(40);
+  if (!trainer) {
+    return (
+      <div className="bg-white p-8 rounded-lg border border-slate-200 text-center">
+        <h2 className="text-base font-semibold text-slate-900">Trainer Profile Inactive</h2>
+        <p className="text-sm text-slate-500 mt-1">Please contact your gym administrator to link your coach account.</p>
+      </div>
+    );
+  }
+
+  // Fetch trainer's assigned member IDs
+  const { data: myMembers } = await supabase
+    .from("members")
+    .select("id")
+    .eq("assigned_trainer_id", trainer.id);
+
+  const memberIds = myMembers?.map((m) => m.id) || [];
+
+  const { data: records } = memberIds.length > 0
+    ? await supabase
+        .from("progress_records")
+        .select(`
+          id,
+          recorded_at,
+          weight_kg,
+          chest_inches,
+          waist_inches,
+          arms_inches,
+          bench_press_kg,
+          squat_kg,
+          members (
+            id,
+            profiles (full_name)
+          )
+        `)
+        .in("member_id", memberIds)
+        .order("recorded_at", { ascending: false })
+        .limit(40)
+    : { data: [] };
 
   return (
     <div className="space-y-6">
-      <section className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          Athlete Progress & Body Metrics
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Recent body metrics, scale weight logs, and strength personal records for your assigned roster.
-        </p>
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Athlete Progress & Body Metrics
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Recent body metrics, scale weight logs, and strength personal records for your assigned roster.
+          </p>
+        </div>
+
+        <Link
+          href="/trainer/members"
+          className="h-8 px-3.5 rounded bg-[#1E40AF] text-white hover:bg-blue-800 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm shrink-0"
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>Log Assessment</span>
+        </Link>
       </section>
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -89,7 +123,7 @@ export default async function TrainerProgressPage() {
             ) : (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">
-                  No progress records logged yet.
+                  No progress records logged yet. Open an athlete from "My Members" to record scale weight and body measurements.
                 </td>
               </tr>
             )}
