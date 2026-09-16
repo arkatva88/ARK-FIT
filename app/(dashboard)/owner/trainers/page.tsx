@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Phone, Users, Target, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
-import { MemberClientModal } from "@/components/owner/member-client-modal";
+import { Phone } from "lucide-react";
 import { TrainerActionsModal } from "@/components/owner/trainer-actions-modal";
 
 export default async function OwnerTrainersPage() {
@@ -93,7 +91,7 @@ export default async function OwnerTrainersPage() {
 
                   {t.bio && (
                     <p className="text-xs text-slate-600 italic line-clamp-2 bg-slate-50 p-2.5 rounded border border-slate-200 mt-3">
-                      "{t.bio}"
+                      {t.bio}
                     </p>
                   )}
                 </div>
@@ -114,6 +112,11 @@ export default async function OwnerTrainersPage() {
                     <span className="text-[10px] uppercase font-semibold text-blue-700 block">PT Packs</span>
                     <span className="text-sm font-bold text-blue-800 tabular-nums">{activePtPackages}</span>
                   </div>
+                </div>
+
+                {/* Edit & Activate/Deactivate Actions */}
+                <div className="pt-3 border-t border-slate-100">
+                  <TrainerActionsModal trainer={t} />
                 </div>
               </div>
             );

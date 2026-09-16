@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -106,8 +107,11 @@ export async function POST(req: Request) {
       }
     }
 
-    // Insert pending payment in database
-    const { data: paymentRecord, error: payErr } = await supabase
+    // Insert pending payment in database using admin client
+    // (Members have no INSERT RLS policy on payments — the insert is done
+    //  server-side after full auth + ownership verification above)
+    const admin = createAdminClient();
+    const { data: paymentRecord, error: payErr } = await admin
       .from("payments")
       .insert({
         gym_id: member.gym_id,
