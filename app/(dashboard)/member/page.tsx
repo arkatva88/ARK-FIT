@@ -46,63 +46,64 @@ export default async function MemberHomePage() {
   const m = member as any;
   const isPt = m.member_type === "PT";
 
-  // 2. Fetch Active Workout Plan
-  const { data: workoutPlan } = await supabase
-    .from("workout_plans")
-    .select("*")
-    .eq("member_id", m.id)
-    .eq("status", "ACTIVE")
-    .limit(1)
-    .maybeSingle();
-
-  // 3. Fetch PT Package & Today's PT Session if PT member
-  let todayPtSession: any = null;
-  let activePtPackage: any = null;
-
-  if (isPt) {
-    const { data: ptPkg } = await supabase
-      .from("pt_packages")
+  // 2. Concurrently fetch Member dashboard resources in a single roundtrip
+  const [
+    { data: workoutPlan },
+    { data: ptPkg },
+    { data: session },
+    { data: attendanceList },
+    { data: latestProgress }
+  ] = await Promise.all([
+    supabase
+      .from("workout_plans")
       .select("*")
       .eq("member_id", m.id)
       .eq("status", "ACTIVE")
       .limit(1)
-      .maybeSingle();
-    activePtPackage = ptPkg;
-
-    const { data: session } = await supabase
-      .from("pt_sessions")
-      .select(`
-        *,
-        trainer:trainers (
-          profiles (full_name)
-        )
-      `)
+      .maybeSingle(),
+    isPt
+      ? supabase
+          .from("pt_packages")
+          .select("*")
+          .eq("member_id", m.id)
+          .eq("status", "ACTIVE")
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isPt
+      ? supabase
+          .from("pt_sessions")
+          .select(`
+            *,
+            trainer:trainers (
+              profiles (full_name)
+            )
+          `)
+          .eq("member_id", m.id)
+          .eq("session_date", today)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("attendance")
+      .select("status")
+      .eq("member_id", m.id),
+    supabase
+      .from("progress_records")
+      .select("weight_kg")
       .eq("member_id", m.id)
-      .eq("session_date", today)
+      .order("recorded_at", { ascending: false })
       .limit(1)
-      .maybeSingle();
-    todayPtSession = session;
-  }
+      .maybeSingle()
+  ]);
 
-  // 4. Fetch Attendance %
-  const { data: attendanceList } = await supabase
-    .from("attendance")
-    .select("status")
-    .eq("member_id", m.id);
+  const activePtPackage = ptPkg;
+  const todayPtSession = session;
 
-  const presentCount = attendanceList?.filter((a) => a.status === "PRESENT").length || 0;
+  const presentCount = attendanceList?.filter((a: any) => a.status === "PRESENT").length || 0;
   const attendancePct = attendanceList && attendanceList.length > 0
     ? Math.round((presentCount / attendanceList.length) * 100)
     : 0;
-
-  // 5. Fetch Latest Weight
-  const { data: latestProgress } = await supabase
-    .from("progress_records")
-    .select("weight_kg")
-    .eq("member_id", m.id)
-    .order("recorded_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const currentDayName = dayNames[new Date().getDay()];

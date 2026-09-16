@@ -25,21 +25,24 @@ export default async function MemberPaymentsPage() {
 
   if (!member) notFound();
 
-  // Fetch Member's latest membership plan
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("*")
-    .eq("member_id", member.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  // Fetch Payment history
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("*")
-    .eq("member_id", member.id)
-    .order("created_at", { ascending: false });
+  // Concurrently fetch Member's latest membership plan and payment history in a single roundtrip
+  const [
+    { data: membership },
+    { data: payments }
+  ] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("*")
+      .eq("member_id", member.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("payments")
+      .select("*")
+      .eq("member_id", member.id)
+      .order("created_at", { ascending: false })
+  ]);
 
   const renewalAmount = membership?.amount || 1500;
 

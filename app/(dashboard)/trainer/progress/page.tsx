@@ -76,59 +76,61 @@ export default async function TrainerProgressPage() {
       </section>
 
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            <tr>
-              <th className="px-5 py-3">Athlete</th>
-              <th className="px-5 py-3">Date</th>
-              <th className="px-5 py-3">Weight</th>
-              <th className="px-5 py-3">Chest</th>
-              <th className="px-5 py-3">Waist</th>
-              <th className="px-5 py-3">Bench Press</th>
-              <th className="px-5 py-3">Squat</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {records && records.length > 0 ? (
-              records.map((r: any) => {
-                const memberProfile = Array.isArray(r.members?.profiles) ? r.members?.profiles[0] : r.members?.profiles;
-                return (
-                  <tr key={r.id} className="hover:bg-slate-50/60 transition-colors text-xs">
-                    <td className="px-5 py-3.5 font-semibold text-slate-900">
-                      <Link href={`/trainer/members/${r.members?.id}`} className="hover:text-[#1E40AF]">
-                        {memberProfile?.full_name || "Athlete"}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500 font-mono">
-                      {formatDate(r.recorded_at)}
-                    </td>
-                    <td className="px-5 py-3.5 font-bold text-slate-900 tabular-nums">
-                      {r.weight_kg ? `${r.weight_kg} kg` : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-600 tabular-nums">
-                      {r.chest_inches ? `${r.chest_inches}"` : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-600 tabular-nums">
-                      {r.waist_inches ? `${r.waist_inches}"` : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-emerald-700 tabular-nums">
-                      {r.bench_press_kg ? `${r.bench_press_kg} kg` : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-blue-700 tabular-nums">
-                      {r.squat_kg ? `${r.squat_kg} kg` : "—"}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
+        <div className="w-full overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table className="w-full text-left text-sm min-w-[660px]">
+            <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">
-                  No progress records logged yet. Open an athlete from "My Members" to record scale weight and body measurements.
-                </td>
+                <th className="px-5 py-3">Athlete</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Weight</th>
+                <th className="px-5 py-3">Chest</th>
+                <th className="px-5 py-3">Waist</th>
+                <th className="px-5 py-3">Bench Press</th>
+                <th className="px-5 py-3">Squat</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {records && records.length > 0 ? (
+                records.map((r: any) => {
+                  const memberProfile = Array.isArray(r.members?.profiles) ? r.members?.profiles[0] : r.members?.profiles;
+                  return (
+                    <tr key={r.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                      <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
+                        <Link href={`/trainer/members/${r.members?.id}`} className="hover:text-[#1E40AF]">
+                          {memberProfile?.full_name || "Athlete"}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 font-mono whitespace-nowrap">
+                        {formatDate(r.recorded_at)}
+                      </td>
+                      <td className="px-5 py-3.5 font-bold text-slate-900 tabular-nums whitespace-nowrap">
+                        {r.weight_kg ? `${r.weight_kg} kg` : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 tabular-nums whitespace-nowrap">
+                        {r.chest_inches ? `${r.chest_inches}"` : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600 tabular-nums whitespace-nowrap">
+                        {r.waist_inches ? `${r.waist_inches}"` : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 font-semibold text-emerald-700 tabular-nums whitespace-nowrap">
+                        {r.bench_press_kg ? `${r.bench_press_kg} kg` : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 font-semibold text-blue-700 tabular-nums whitespace-nowrap">
+                        {r.squat_kg ? `${r.squat_kg} kg` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">
+                    No progress records logged yet. Open an athlete from &quot;My Members&quot; to record scale weight and body measurements.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

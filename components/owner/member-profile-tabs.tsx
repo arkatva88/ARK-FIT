@@ -438,14 +438,14 @@ export function MemberProfileTabs({
       {activeTab === "progress" && (
         <div className="p-5 rounded-lg border border-slate-200 bg-white shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Body Measurements & Strength</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold">
+          <div className="w-full overflow-x-auto -webkit-overflow-scrolling-touch">
+            <table className="w-full text-left text-xs min-w-[580px]">
+              <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold whitespace-nowrap">
                 <tr>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Weight (kg)</th>
-                  <th className="px-3 py-2">Chest (")</th>
-                  <th className="px-3 py-2">Waist (")</th>
+                  <th className="px-3 py-2">Chest (&quot;)</th>
+                  <th className="px-3 py-2">Waist (&quot;)</th>
                   <th className="px-3 py-2">Bench (kg)</th>
                   <th className="px-3 py-2">Squat (kg)</th>
                 </tr>
@@ -453,13 +453,13 @@ export function MemberProfileTabs({
               <tbody className="divide-y divide-slate-100">
                 {progressRecords.length > 0 ? (
                   progressRecords.map((r) => (
-                    <tr key={r.id} className="text-slate-800">
-                      <td className="px-3 py-2.5 font-medium">{formatDate(r.recorded_at)}</td>
-                      <td className="px-3 py-2.5 font-bold text-[#1E40AF] tabular-nums">{r.weight_kg || "—"}</td>
-                      <td className="px-3 py-2.5 tabular-nums">{r.chest_inches || "—"}</td>
-                      <td className="px-3 py-2.5 tabular-nums">{r.waist_inches || "—"}</td>
-                      <td className="px-3 py-2.5 font-semibold text-emerald-700 tabular-nums">{r.bench_press_kg || "—"}</td>
-                      <td className="px-3 py-2.5 font-semibold text-blue-700 tabular-nums">{r.squat_kg || "—"}</td>
+                    <tr key={r.id} className="text-slate-800 hover:bg-slate-50/60 transition-colors">
+                      <td className="px-3 py-2.5 font-medium whitespace-nowrap">{formatDate(r.recorded_at)}</td>
+                      <td className="px-3 py-2.5 font-bold text-[#1E40AF] tabular-nums whitespace-nowrap">{r.weight_kg || "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{r.chest_inches || "—"}</td>
+                      <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{r.waist_inches || "—"}</td>
+                      <td className="px-3 py-2.5 font-semibold text-emerald-700 tabular-nums whitespace-nowrap">{r.bench_press_kg || "—"}</td>
+                      <td className="px-3 py-2.5 font-semibold text-blue-700 tabular-nums whitespace-nowrap">{r.squat_kg || "—"}</td>
                     </tr>
                   ))
                 ) : (

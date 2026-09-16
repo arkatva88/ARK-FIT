@@ -41,52 +41,55 @@ export default async function TrainerDashboardPage() {
   const trainerProfile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
   const trainerName = trainerProfile?.full_name || "Coach";
 
-  // 1. Fetch Today's Scheduled PT Sessions for this Trainer
-  const { data: todaySessions } = await supabase
-    .from("pt_sessions")
-    .select(`
-      id,
-      session_number,
-      session_time,
-      status,
-      workout_notes,
-      trainer_notes,
-      members (
+  // 1. Concurrently fetch Today's PT Sessions and Assigned Members in one roundtrip
+  const [
+    { data: todaySessions },
+    { data: myMembers }
+  ] = await Promise.all([
+    supabase
+      .from("pt_sessions")
+      .select(`
         id,
+        session_number,
+        session_time,
+        status,
+        workout_notes,
+        trainer_notes,
+        members (
+          id,
+          profiles (
+            full_name,
+            phone
+          )
+        ),
+        package:pt_packages (
+          total_sessions,
+          remaining_sessions
+        )
+      `)
+      .eq("trainer_id", trainer.id)
+      .eq("session_date", today)
+      .order("session_time", { ascending: true }),
+    supabase
+      .from("members")
+      .select(`
+        id,
+        member_type,
+        status,
+        membership_expiry,
         profiles (
           full_name,
           phone
+        ),
+        pt_packages (
+          total_sessions,
+          remaining_sessions,
+          status
         )
-      ),
-      package:pt_packages (
-        total_sessions,
-        remaining_sessions
-      )
-    `)
-    .eq("trainer_id", trainer.id)
-    .eq("session_date", today)
-    .order("session_time", { ascending: true });
-
-  // 2. Fetch My Assigned Members
-  const { data: myMembers } = await supabase
-    .from("members")
-    .select(`
-      id,
-      member_type,
-      status,
-      membership_expiry,
-      profiles (
-        full_name,
-        phone
-      ),
-      pt_packages (
-        total_sessions,
-        remaining_sessions,
-        status
-      )
-    `)
-    .eq("assigned_trainer_id", trainer.id)
-    .eq("status", "ACTIVE");
+      `)
+      .eq("assigned_trainer_id", trainer.id)
+      .eq("status", "ACTIVE")
+  ]);
 
   const totalAssigned = myMembers?.length || 0;
   const ptCount = myMembers?.filter((m) => m.member_type === "PT").length || 0;

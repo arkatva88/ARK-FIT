@@ -23,22 +23,89 @@ export default async function OwnerDashboardPage() {
     .toISOString()
     .split("T")[0];
 
-  // 1. Fetch Quick Metric Counters
-  const { count: activeMembersCount } = await supabase
-    .from("members")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "ACTIVE");
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  const sevenDaysStr = sevenDaysFromNow.toISOString().split("T")[0];
 
-  const { count: todayAttendanceCount } = await supabase
-    .from("attendance")
-    .select("*", { count: "exact", head: true })
-    .eq("check_in_date", today);
-
-  // 2. Fetch Payments for Month Revenue & Pending
-  const { data: monthPayments } = await supabase
-    .from("payments")
-    .select("amount, status, due_date, paid_at")
-    .gte("due_date", startOfMonth);
+  // Parallelize all dashboard queries concurrently to eliminate network waterfall
+  const [
+    { count: activeMembersCount },
+    { count: todayAttendanceCount },
+    { data: monthPayments },
+    { data: expiringMembers },
+    { data: pendingPaymentsList },
+    { data: lowSessionPtPackages },
+    { data: todayPtSessions },
+  ] = await Promise.all([
+    supabase
+      .from("members")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "ACTIVE"),
+    supabase
+      .from("attendance")
+      .select("*", { count: "exact", head: true })
+      .eq("attendance_date", today),
+    supabase
+      .from("payments")
+      .select("amount, status, due_date, paid_at")
+      .gte("due_date", startOfMonth),
+    supabase
+      .from("members")
+      .select("id, status, membership_expiry, profiles(full_name, phone)")
+      .eq("status", "ACTIVE")
+      .gte("membership_expiry", today)
+      .lte("membership_expiry", sevenDaysStr)
+      .limit(5),
+    supabase
+      .from("payments")
+      .select(`
+        id,
+        amount,
+        due_date,
+        members (
+          id,
+          profiles (full_name, phone)
+        )
+      `)
+      .in("status", ["PENDING", "OVERDUE"])
+      .order("due_date", { ascending: true })
+      .limit(5),
+    supabase
+      .from("pt_packages")
+      .select(`
+        id,
+        total_sessions,
+        used_sessions,
+        remaining_sessions,
+        members (
+          id,
+          profiles (full_name)
+        )
+      `)
+      .eq("status", "ACTIVE")
+      .lte("remaining_sessions", 2)
+      .limit(5),
+    supabase
+      .from("pt_sessions")
+      .select(`
+        id,
+        session_number,
+        session_date,
+        session_time,
+        status,
+        members (
+          id,
+          profiles (full_name)
+        ),
+        trainers (
+          id,
+          profiles (full_name)
+        )
+      `)
+      .eq("session_date", today)
+      .order("session_time", { ascending: true })
+      .limit(6),
+  ]);
 
   const totalCollected =
     monthPayments
@@ -49,74 +116,6 @@ export default async function OwnerDashboardPage() {
     monthPayments
       ?.filter((p) => p.status === "PENDING" || p.status === "OVERDUE")
       .reduce((acc, curr) => acc + parseFloat(curr.amount || "0"), 0) || 0;
-
-  // 3. ACTION REQUIRED 1: Expiring in <= 7 days
-  const sevenDaysFromNow = new Date();
-  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-  const sevenDaysStr = sevenDaysFromNow.toISOString().split("T")[0];
-
-  const { data: expiringMembers } = await supabase
-    .from("members")
-    .select("id, status, membership_expiry, profiles(full_name, phone)")
-    .eq("status", "ACTIVE")
-    .gte("membership_expiry", today)
-    .lte("membership_expiry", sevenDaysStr)
-    .limit(5);
-
-  // 4. ACTION REQUIRED 2: Pending Payments
-  const { data: pendingPaymentsList } = await supabase
-    .from("payments")
-    .select(`
-      id,
-      amount,
-      due_date,
-      members (
-        id,
-        profiles (full_name, phone)
-      )
-    `)
-    .in("status", ["PENDING", "OVERDUE"])
-    .order("due_date", { ascending: true })
-    .limit(5);
-
-  // 5. ACTION REQUIRED 3: PT Packages with <= 2 sessions left
-  const { data: lowSessionPtPackages } = await supabase
-    .from("pt_packages")
-    .select(`
-      id,
-      total_sessions,
-      used_sessions,
-      remaining_sessions,
-      members (
-        id,
-        profiles (full_name)
-      )
-    `)
-    .eq("status", "ACTIVE")
-    .lte("remaining_sessions", 2)
-    .limit(5);
-
-  // 6. Today's Scheduled PT Sessions
-  const { data: todayPtSessions } = await supabase
-    .from("pt_sessions")
-    .select(`
-      id,
-      session_number,
-      session_date,
-      session_time,
-      status,
-      members (
-        id,
-        profiles (full_name)
-      ),
-      trainers (
-        id,
-        profiles (full_name)
-      )
-    `)
-    .eq("session_date", today)
-    .order("session_time", { ascending: true })
-    .limit(6);
 
   const formattedDate = new Intl.DateTimeFormat("en-IN", {
     weekday: "long",

@@ -48,98 +48,96 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
     notFound();
   }
 
-  // 2. Fetch Memberships
-  const { data: memberships } = await supabase
-    .from("memberships")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false });
-
-  // 3. Fetch Attendance (Recent 30 records)
-  const { data: attendanceList } = await supabase
-    .from("attendance")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("attendance_date", { ascending: false })
-    .limit(30);
+  // 2. Concurrently fetch all related member data in a single network roundtrip
+  const [
+    { data: memberships },
+    { data: attendanceList },
+    { data: payments },
+    { data: ptPackages },
+    { data: ptSessions },
+    { data: workoutPlans },
+    { data: dietPlans },
+    { data: progressRecords },
+    { data: progressPhotos },
+    { data: memberNotes }
+  ] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("attendance")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("attendance_date", { ascending: false })
+      .limit(30),
+    supabase
+      .from("payments")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("pt_packages")
+      .select(`
+        *,
+        trainer:trainers (
+          profiles (full_name)
+        )
+      `)
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("pt_sessions")
+      .select(`
+        *,
+        trainer:trainers (
+          profiles (full_name)
+        )
+      `)
+      .eq("member_id", memberId)
+      .order("session_date", { ascending: false })
+      .limit(20),
+    supabase
+      .from("workout_plans")
+      .select("*")
+      .eq("member_id", memberId)
+      .eq("status", "ACTIVE")
+      .limit(1),
+    supabase
+      .from("diet_plans")
+      .select("*")
+      .eq("member_id", memberId)
+      .eq("status", "ACTIVE")
+      .limit(1),
+    supabase
+      .from("progress_records")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("recorded_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("progress_photos")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("taken_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("member_notes")
+      .select(`
+        *,
+        trainer:trainers (
+          profiles (full_name)
+        )
+      `)
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false })
+  ]);
 
   const presentCount = attendanceList?.filter((a) => a.status === "PRESENT").length || 0;
   const attendanceRate = attendanceList && attendanceList.length > 0
     ? Math.round((presentCount / attendanceList.length) * 100)
     : 0;
-
-  // 4. Fetch Payments
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false });
-
-  // 5. Fetch PT Packages & PT Sessions
-  const { data: ptPackages } = await supabase
-    .from("pt_packages")
-    .select(`
-      *,
-      trainer:trainers (
-        profiles (full_name)
-      )
-    `)
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false });
-
-  const { data: ptSessions } = await supabase
-    .from("pt_sessions")
-    .select(`
-      *,
-      trainer:trainers (
-        profiles (full_name)
-      )
-    `)
-    .eq("member_id", memberId)
-    .order("session_date", { ascending: false })
-    .limit(20);
-
-  // 6. Fetch Workout & Diet Plans
-  const { data: workoutPlans } = await supabase
-    .from("workout_plans")
-    .select("*")
-    .eq("member_id", memberId)
-    .eq("status", "ACTIVE")
-    .limit(1);
-
-  const { data: dietPlans } = await supabase
-    .from("diet_plans")
-    .select("*")
-    .eq("member_id", memberId)
-    .eq("status", "ACTIVE")
-    .limit(1);
-
-  // 7. Fetch Progress Records & Photos
-  const { data: progressRecords } = await supabase
-    .from("progress_records")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("recorded_at", { ascending: false })
-    .limit(10);
-
-  const { data: progressPhotos } = await supabase
-    .from("progress_photos")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("taken_at", { ascending: false })
-    .limit(6);
-
-  // 8. Fetch Member Structured Notes
-  const { data: memberNotes } = await supabase
-    .from("member_notes")
-    .select(`
-      *,
-      trainer:trainers (
-        profiles (full_name)
-      )
-    `)
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false });
 
   const m = member as any;
   const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;

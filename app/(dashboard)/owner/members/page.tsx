@@ -147,146 +147,97 @@ export default async function OwnerMembersPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* 3. Members Data Table */}
-      <div className="hidden md:block rounded-lg border border-[#E2E8F0] bg-white overflow-hidden shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
-            <tr>
-              <th className="px-6 py-3.5">Athlete</th>
-              <th className="px-6 py-3.5">Member Type</th>
-              <th className="px-6 py-3.5">Assigned Coach</th>
-              <th className="px-6 py-3.5">Status</th>
-              <th className="px-6 py-3.5">Expiry Date</th>
-              <th className="px-6 py-3.5 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#E2E8F0]">
-            {members && members.length > 0 ? (
-              members.map((member: any) => {
-                const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
-                const trainer = Array.isArray(member.assigned_trainer) ? member.assigned_trainer[0] : member.assigned_trainer;
-                const trainerProfile = Array.isArray(trainer?.profiles) ? trainer?.profiles[0] : trainer?.profiles;
-
-                const isPt = member.member_type === "PT";
-                const isExpired = member.membership_expiry && member.membership_expiry < today;
-
-                return (
-                  <tr key={member.id} className="hover:bg-[#F8FAFC]/80 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-[#DBEAFE] text-[#1E40AF] font-bold flex items-center justify-center text-xs border border-[#BFDBFE]">
-                          {profile?.full_name?.slice(0, 2).toUpperCase() || "MB"}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-[#0F172A] text-xs block">{profile?.full_name || "Member"}</span>
-                          <span className="text-[11px] text-[#64748B] block">{profile?.phone || "No phone"}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-3.5">
-                      {isPt ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309] text-[11px] font-semibold">
-                          <Sparkles className="w-3 h-3" /> PT Member
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] text-[#64748B] text-[11px] font-medium">
-                          Normal Member
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-3.5 text-xs text-[#0F172A] font-medium">
-                      {trainerProfile?.full_name || "— None assigned —"}
-                    </td>
-
-                    <td className="px-6 py-3.5">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                          member.status === "ACTIVE" && !isExpired
-                            ? "bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]"
-                            : "bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C]"
-                        }`}
-                      >
-                        {isExpired ? "EXPIRED" : member.status}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-3.5 text-xs font-mono font-medium text-[#0F172A]">
-                      {formatDate(member.membership_expiry)}
-                    </td>
-
-                    <td className="px-6 py-3.5 text-right">
-                      <Link
-                        href={`/owner/members/${member.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E40AF] hover:underline"
-                      >
-                        Profile &rarr;
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
+      {/* 3. Members Data Table with Universal Horizontal Scroll */}
+      <div className="rounded-lg border border-[#E2E8F0] bg-white overflow-hidden shadow-sm">
+        <div className="w-full overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table className="w-full text-left text-sm min-w-[680px]">
+            <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-[#64748B] text-xs">
-                  No athletes found matching the selected filter criteria.
-                </td>
+                <th className="px-6 py-3.5">Athlete</th>
+                <th className="px-6 py-3.5">Member Type</th>
+                <th className="px-6 py-3.5">Assigned Coach</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Expiry Date</th>
+                <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[#E2E8F0]">
+              {members && members.length > 0 ? (
+                members.map((member: any) => {
+                  const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
+                  const trainer = Array.isArray(member.assigned_trainer) ? member.assigned_trainer[0] : member.assigned_trainer;
+                  const trainerProfile = Array.isArray(trainer?.profiles) ? trainer?.profiles[0] : trainer?.profiles;
 
-      {/* 4. Mobile Card Feed */}
-      <div className="md:hidden space-y-2.5">
-        {members && members.length > 0 ? (
-          members.map((member: any) => {
-            const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
-            const trainer = Array.isArray(member.assigned_trainer) ? member.assigned_trainer[0] : member.assigned_trainer;
-            const trainerProfile = Array.isArray(trainer?.profiles) ? trainer?.profiles[0] : trainer?.profiles;
-            const isPt = member.member_type === "PT";
+                  const isPt = member.member_type === "PT";
+                  const isExpired = member.membership_expiry && member.membership_expiry < today;
 
-            return (
-              <Link
-                key={member.id}
-                href={`/owner/members/${member.id}`}
-                className="block p-3.5 rounded-lg border border-[#E2E8F0] bg-white hover:border-[#1E40AF] transition-colors shadow-sm"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded bg-[#DBEAFE] text-[#1E40AF] font-bold flex items-center justify-center text-xs">
-                      {profile?.full_name?.slice(0, 2).toUpperCase() || "MB"}
-                    </div>
-                    <div>
-                      <span className="font-semibold text-[#0F172A] text-xs block">{profile?.full_name || "Member"}</span>
-                      <span className="text-[10px] text-[#64748B] block">{profile?.phone}</span>
-                    </div>
-                  </div>
+                  return (
+                    <tr key={member.id} className="hover:bg-[#F8FAFC]/80 transition-colors">
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-[#DBEAFE] text-[#1E40AF] font-bold flex items-center justify-center text-xs border border-[#BFDBFE]">
+                            {profile?.full_name?.slice(0, 2).toUpperCase() || "MB"}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-[#0F172A] text-xs block">{profile?.full_name || "Member"}</span>
+                            <span className="text-[11px] text-[#64748B] block">{profile?.phone || "No phone"}</span>
+                          </div>
+                        </div>
+                      </td>
 
-                  {isPt ? (
-                    <span className="px-2 py-0.5 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309] text-[10px] font-semibold">
-                      PT
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] text-[#64748B] text-[10px]">
-                      Normal
-                    </span>
-                  )}
-                </div>
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        {isPt ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309] text-[11px] font-semibold">
+                            <Sparkles className="w-3 h-3" /> PT Member
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] text-[#64748B] text-[11px] font-medium">
+                            Normal Member
+                          </span>
+                        )}
+                      </td>
 
-                <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#64748B]">
-                  <span>Coach: {trainerProfile?.full_name || "None"}</span>
-                  <span className="font-medium text-[#0F172A]">Expires: {formatDate(member.membership_expiry)}</span>
-                </div>
-              </Link>
-            );
-          })
-        ) : (
-          <div className="p-8 text-center text-[#64748B] text-xs border border-dashed border-[#E2E8F0] rounded-lg bg-white">
-            No athletes found.
-          </div>
-        )}
+                      <td className="px-6 py-3.5 text-xs text-[#0F172A] font-medium whitespace-nowrap">
+                        {trainerProfile?.full_name || "— None assigned —"}
+                      </td>
+
+                      <td className="px-6 py-3.5 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                            member.status === "ACTIVE" && !isExpired
+                              ? "bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]"
+                              : "bg-[#FFF1F2] border border-[#FECDD3] text-[#BE123C]"
+                          }`}
+                        >
+                          {isExpired ? "EXPIRED" : member.status}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-3.5 text-xs font-mono font-medium text-[#0F172A] whitespace-nowrap">
+                        {formatDate(member.membership_expiry)}
+                      </td>
+
+                      <td className="px-6 py-3.5 text-right whitespace-nowrap">
+                        <Link
+                          href={`/owner/members/${member.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E40AF] hover:underline"
+                        >
+                          Profile &rarr;
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#64748B] text-xs">
+                    No athletes found matching the selected filter criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

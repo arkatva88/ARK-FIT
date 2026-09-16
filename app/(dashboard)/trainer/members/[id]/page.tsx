@@ -31,30 +31,32 @@ export default async function TrainerMemberProfilePage({ params }: PageProps) {
 
   if (!member) notFound();
 
-  // Fetch Member's Workout Plan
-  const { data: workoutPlan } = await supabase
-    .from("workout_plans")
-    .select("*")
-    .eq("member_id", memberId)
-    .eq("status", "ACTIVE")
-    .limit(1)
-    .maybeSingle();
-
-  // Fetch Member's Diet Plan
-  const { data: dietPlan } = await supabase
-    .from("diet_plans")
-    .select("*")
-    .eq("member_id", memberId)
-    .eq("status", "ACTIVE")
-    .limit(1)
-    .maybeSingle();
-
-  // Fetch Member's PT Package & Sessions
-  const { data: ptPackages } = await supabase
-    .from("pt_packages")
-    .select("*")
-    .eq("member_id", memberId)
-    .order("created_at", { ascending: false });
+  // Concurrently fetch Workout Plan, Diet Plan, and PT Packages in a single network roundtrip
+  const [
+    { data: workoutPlan },
+    { data: dietPlan },
+    { data: ptPackages }
+  ] = await Promise.all([
+    supabase
+      .from("workout_plans")
+      .select("*")
+      .eq("member_id", memberId)
+      .eq("status", "ACTIVE")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("diet_plans")
+      .select("*")
+      .eq("member_id", memberId)
+      .eq("status", "ACTIVE")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("pt_packages")
+      .select("*")
+      .eq("member_id", memberId)
+      .order("created_at", { ascending: false })
+  ]);
 
   const m = member as any;
   const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;

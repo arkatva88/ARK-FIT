@@ -113,104 +113,108 @@ export function AttendanceClientList({ selectedDate, members: initialMembers }: 
 
       {/* Athletes Table */}
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            <tr>
-              <th className="px-5 py-3">Athlete</th>
-              <th className="px-5 py-3">Type</th>
-              <th className="px-5 py-3">Assigned Coach</th>
-              <th className="px-5 py-3">Check-in Time</th>
-              <th className="px-5 py-3 text-right">Floor Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredMembers.length > 0 ? (
-              filteredMembers.map((m) => {
-                const isPresent = m.attendance_status === "PRESENT";
-                const isUpdating = updatingId === m.id;
+        <div className="w-full overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table className="w-full text-left text-sm min-w-[660px]">
+            <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+              <tr>
+                <th className="px-5 py-3">Athlete</th>
+                <th className="px-5 py-3">Type</th>
+                <th className="px-5 py-3">Assigned Coach</th>
+                <th className="px-5 py-3">Check-in Time</th>
+                <th className="px-5 py-3 text-right">Floor Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredMembers.length > 0 ? (
+                filteredMembers.map((m) => {
+                  const isPresent = m.attendance_status === "PRESENT";
+                  const isUpdating = updatingId === m.id;
 
-                return (
-                  <tr key={m.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                  return (
+                    <tr key={m.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              isPresent
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {m.profiles?.full_name?.slice(0, 2).toUpperCase() || "MB"}
+                          </div>
+                          <div>
+                            <Link
+                              href={`/owner/members/${m.id}`}
+                              className="font-semibold text-slate-900 hover:text-blue-700 block text-sm"
+                            >
+                              {m.profiles?.full_name || "Athlete"}
+                            </Link>
+                            <span className="text-xs text-slate-400 block">{m.profiles?.phone || "No phone"}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        {m.member_type === "PT" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            PT
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">
+                            General
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs text-slate-600 font-medium whitespace-nowrap">
+                        {m.assigned_trainer?.profiles?.full_name || "Floor Trainer"}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs text-slate-500 font-mono whitespace-nowrap">
+                        {m.check_in_time
+                          ? new Date(m.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                          : "—"}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => toggleAttendance(m.id, m.attendance_status)}
+                          disabled={isUpdating}
+                          className={`h-8 px-3.5 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50 ${
                             isPresent
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-slate-100 text-slate-600"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100"
+                              : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
                           }`}
                         >
-                          {m.profiles?.full_name?.slice(0, 2).toUpperCase() || "MB"}
-                        </div>
-                        <div>
-                          <Link
-                            href={`/owner/members/${m.id}`}
-                            className="font-semibold text-slate-900 hover:text-blue-700 block text-sm"
-                          >
-                            {m.profiles?.full_name || "Athlete"}
-                          </Link>
-                          <span className="text-xs text-slate-400 block">{m.profiles?.phone || "No phone"}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-3.5">
-                      {m.member_type === "PT" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                          PT
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">
-                          General
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="px-5 py-3.5 text-xs text-slate-600 font-medium">
-                      {m.assigned_trainer?.profiles?.full_name || "Floor Trainer"}
-                    </td>
-
-                    <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">
-                      {m.check_in_time
-                        ? new Date(m.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                        : "—"}
-                    </td>
-
-                    <td className="px-5 py-3.5 text-right">
-                      <button
-                        onClick={() => toggleAttendance(m.id, m.attendance_status)}
-                        disabled={isUpdating}
-                        className={`h-8 px-3 rounded text-xs font-semibold transition-all inline-flex items-center gap-1.5 disabled:opacity-50 ${
-                          isPresent
-                            ? "bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                            : "bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        }`}
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : isPresent ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Present
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-3.5 h-3.5 text-slate-400" /> Absent
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">
-                  No athletes found matching the query.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                          {isUpdating ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                            </>
+                          ) : isPresent ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Present
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3.5 h-3.5 text-slate-400" /> Absent
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">
+                    No athletes found matching the query.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
