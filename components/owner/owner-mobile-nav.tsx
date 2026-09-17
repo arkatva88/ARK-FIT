@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { getQueryClient } from "@/lib/query-client";
+import { unsubscribeUserFromPush } from "@/lib/notifications/client";
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +20,7 @@ import {
   X,
   LogOut,
   Building2,
+  Loader2,
 } from "lucide-react";
 
 interface OwnerMobileNavProps {
@@ -25,12 +29,32 @@ interface OwnerMobileNavProps {
 
 export function OwnerMobileNav({ gymName = "ARK FIT" }: OwnerMobileNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Close drawer on route change
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+
+    try {
+      await unsubscribeUserFromPush().catch(() => {});
+      const queryClient = getQueryClient();
+      queryClient.clear();
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      await fetch("/api/auth/signout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch {
+      window.location.href = "/login";
+    }
+  };
 
   const primaryItems = [
     { label: "Dashboard", href: "/owner", icon: LayoutDashboard, exact: true },
@@ -51,8 +75,8 @@ export function OwnerMobileNav({ gymName = "ARK FIT" }: OwnerMobileNavProps) {
 
   return (
     <>
-      {/* Persistent Bottom Bar (Mobile only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 pb-[env(safe-area-inset-bottom,0px)] bg-white border-t border-slate-200 z-40 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+      {/* Persistent Bottom Bar (Mobile only) - Safe Area Compliant */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-white border-t border-slate-200 z-40 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         {primaryItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.exact
@@ -153,17 +177,26 @@ export function OwnerMobileNav({ gymName = "ARK FIT" }: OwnerMobileNavProps) {
               })}
             </div>
 
-            {/* Bottom Actions */}
-            <div className="p-3 border-t border-slate-200 bg-slate-50/50">
-              <form action="/api/auth/signout" method="POST">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </form>
+            {/* Bottom Actions with Safe-Area Padding */}
+            <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-slate-200 bg-slate-50/50">
+              <button
+                type="button"
+                disabled={signingOut}
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors disabled:opacity-50"
+              >
+                {signingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-rose-700" />
+                    <span>Signing Out...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

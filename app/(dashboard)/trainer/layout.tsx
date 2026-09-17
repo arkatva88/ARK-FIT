@@ -107,14 +107,15 @@ export default async function TrainerLayout({
 
       {/* TOP BAR (Sticky Navigation Full Width with 240px offset on LG) */}
       <header className="sticky top-0 z-30 flex justify-between items-center h-14 bg-white border-b border-slate-200 px-4 sm:px-6 lg:ml-60">
-        {/* Left: Search Box */}
-        <div className="flex items-center gap-3 w-64 sm:w-80">
-          <div className="lg:hidden flex items-center gap-2 mr-2">
+        {/* Left: Search Box & Mobile Brand */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 max-w-xs sm:max-w-sm">
+          <div className="lg:hidden flex items-center gap-2 shrink-0">
             <div className="w-7 h-7 rounded bg-[#1E40AF] text-white font-bold text-xs flex items-center justify-center shadow-sm">
               A
             </div>
+            <span className="text-sm font-bold text-[#1E40AF] hidden xs:inline">ARK FIT</span>
           </div>
-          <div className="relative w-full">
+          <div className="relative flex-1 min-w-0 hidden sm:block">
             <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
             <input
               type="text"
@@ -125,7 +126,7 @@ export default async function TrainerLayout({
         </div>
 
         {/* Right: Contextual Status & Profile Actions */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
           {/* Shift Badge */}
           <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 bg-slate-50 rounded border border-slate-200 text-xs font-medium text-slate-700">
             <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
@@ -146,8 +147,8 @@ export default async function TrainerLayout({
         </div>
       </header>
 
-      {/* MAIN CANVAS with safe mobile bottom bar padding */}
-      <main className="lg:ml-60 flex-1 p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-8">
+      {/* MAIN CANVAS with safe mobile bottom bar + iOS home indicator padding */}
+      <main className="lg:ml-60 flex-1 p-4 sm:p-6 lg:p-8 space-y-6 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
         {children}
       </main>
 

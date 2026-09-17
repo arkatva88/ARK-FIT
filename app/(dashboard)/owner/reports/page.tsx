@@ -5,10 +5,16 @@ import { CreditCard, Users, CalendarCheck } from "lucide-react";
 export default async function OwnerReportsPage() {
   const supabase = createClient();
 
-  // Fetch metrics
-  const { data: members } = await supabase.from("members").select("member_type, status");
-  const { data: payments } = await supabase.from("payments").select("amount, status, payment_method, created_at");
-  const { data: attendance } = await supabase.from("attendance").select("status, attendance_date");
+  // Concurrently parallelize all report metrics to eliminate network waterfall
+  const [
+    { data: members },
+    { data: payments },
+    { data: attendance }
+  ] = await Promise.all([
+    supabase.from("members").select("member_type, status"),
+    supabase.from("payments").select("amount, status, payment_method, created_at"),
+    supabase.from("attendance").select("status, attendance_date"),
+  ]);
 
   const totalMembers = members?.length || 0;
   const ptCount = members?.filter((m) => m.member_type === "PT").length || 0;

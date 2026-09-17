@@ -136,9 +136,10 @@ export default async function OwnerLayout({
             <Link
               href="/owner/payments"
               className="h-8 px-2.5 bg-white border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#0F172A] rounded text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
+              title="Record New Fee Collection"
             >
               <span className="text-[#1E40AF] font-bold">₹</span>
-              <span>New Collection</span>
+              <span className="hidden sm:inline">New Collection</span>
             </Link>
 
             <NotificationBell />
@@ -155,8 +156,8 @@ export default async function OwnerLayout({
           </div>
         </header>
 
-        {/* Page Content with safe padding for mobile bottom bar */}
-        <main className="flex-1 p-4 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6 pb-24 lg:pb-8">
+        {/* Page Content with safe padding for mobile bottom bar + iOS home indicator */}
+        <main className="flex-1 p-4 lg:p-8 max-w-[1440px] w-full mx-auto space-y-6 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
           {children}
         </main>
       </div>

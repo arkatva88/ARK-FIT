@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Loader2 } from "lucide-react";
@@ -20,13 +20,19 @@ export function PaymentModal({ members }: PaymentModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Synchronous submission lock
+  const isSubmittingRef = useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+
     if (!memberId) {
       setError("Please select a member");
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -60,7 +66,7 @@ export function PaymentModal({ members }: PaymentModalProps) {
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Failed to record payment");
-    } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -76,7 +82,7 @@ export function PaymentModal({ members }: PaymentModalProps) {
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl relative">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl relative max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button
               onClick={() => setIsOpen(false)}
               className="absolute right-4 top-4 p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -164,20 +170,28 @@ export function PaymentModal({ members }: PaymentModalProps) {
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+              <div className="pt-3 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={() => setIsOpen(false)}
-                  className="h-9 px-4 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors"
+                  className="w-full sm:w-auto h-9 px-4 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-9 px-4 rounded bg-[#1E40AF] hover:bg-blue-800 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                  className="w-full sm:w-auto h-9 px-4 rounded bg-[#1E40AF] hover:bg-blue-800 text-white text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Payment"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Recording Payment...</span>
+                    </>
+                  ) : (
+                    "Save Payment"
+                  )}
                 </button>
               </div>
             </form>

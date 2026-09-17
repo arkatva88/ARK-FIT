@@ -161,8 +161,8 @@ export default async function MemberLayout({
           </div>
         </header>
 
-        {/* Main Content Canvas with safe mobile bottom bar padding */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-24 lg:pb-8">
+        {/* Main Content Canvas with safe mobile bottom bar + iOS home indicator padding */}
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
           {children}
         </main>
       </div>

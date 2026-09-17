@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Loader2, KeyRound, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -24,8 +24,13 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Synchronous submission lock
+  const isSubmittingRef = useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -56,7 +61,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
       }, 1500);
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.");
-    } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -72,7 +77,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl relative max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button
               onClick={() => setIsOpen(false)}
               className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -272,20 +277,28 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                 </span>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 rounded-lg bg-[#1E40AF] hover:bg-blue-800 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2 rounded-lg bg-[#1E40AF] hover:bg-blue-800 text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </button>
               </div>
             </form>

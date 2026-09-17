@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Edit2, X, Loader2, Check, AlertTriangle } from "lucide-react";
@@ -18,6 +18,9 @@ export function EditMemberModal({ member, trainers }: EditMemberModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Synchronous submission lock
+  const isSubmittingRef = useRef(false);
+
   const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
 
   // Form states
@@ -32,6 +35,8 @@ export function EditMemberModal({ member, trainers }: EditMemberModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -68,7 +73,7 @@ export function EditMemberModal({ member, trainers }: EditMemberModalProps) {
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Failed to update member details.");
-    } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -85,7 +90,7 @@ export function EditMemberModal({ member, trainers }: EditMemberModalProps) {
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl relative max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button
               onClick={() => setIsOpen(false)}
               className="absolute right-4 top-4 p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -214,21 +219,31 @@ export function EditMemberModal({ member, trainers }: EditMemberModalProps) {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={() => setIsOpen(false)}
-                  className="h-9 px-4 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors"
+                  className="w-full sm:w-auto h-9 px-4 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-9 px-5 rounded bg-[#1E40AF] hover:bg-blue-800 text-white font-semibold text-xs shadow-sm transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto h-9 px-5 rounded bg-[#1E40AF] hover:bg-blue-800 text-white font-semibold text-xs shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  <span>Save Changes</span>
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

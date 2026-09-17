@@ -86,7 +86,7 @@ export function PwaInstallBanner() {
       {/* Subtle Floating Install Banner */}
       <aside
         aria-label="Install ARK FIT Application"
-        className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 animate-in fade-in slide-in-from-bottom-4 duration-300"
+        className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 animate-in fade-in slide-in-from-bottom-4 duration-300"
       >
         <div className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-lg flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">

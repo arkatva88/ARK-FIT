@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Shield } from "lucide-react";
@@ -12,29 +12,51 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Synchronous submission ref to guarantee single-request execution even on rapid multi-clicks/touches
+  const isSubmittingRef = useRef(false);
+
+  // Warm client route cache immediately on mount
+  useEffect(() => {
+    router.prefetch("/owner");
+    router.prefetch("/trainer");
+    router.prefetch("/member");
+    router.prefetch("/change-password");
+  }, [router]);
+
   const setDemoCredentials = (roleEmail: string, rolePass: string) => {
+    if (loading || redirecting) return;
     setEmail(roleEmail);
     setPassword(rolePass);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Guard at form submission level
+    if (isSubmittingRef.current || loading || redirecting) return;
+    isSubmittingRef.current = true;
+
+    // Transition IMMEDIATELY on the client - no waiting for server
     setLoading(true);
     setError(null);
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (signInError) {
-        throw new Error(signInError.message);
+        throw signInError;
       }
 
       if (data.user) {
+        // Transition button to redirecting state while Next.js routes
+        setRedirecting(true);
+
         // Fast-Path: Zero-roundtrip role resolution from user_metadata
         const role = data.user.user_metadata?.role;
         const mustChange = data.user.user_metadata?.must_change_password;
@@ -76,11 +98,39 @@ export default function LoginPage() {
         else router.push("/member");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid login credentials. Please try again.");
-    } finally {
+      // Re-enable submission on error
+      isSubmittingRef.current = false;
       setLoading(false);
+      setRedirecting(false);
+
+      // Strict user-friendly error sanitization - never leak database errors or internal details
+      const msg = (err?.message || "").toLowerCase();
+      if (
+        msg.includes("invalid login credentials") ||
+        msg.includes("invalid credential") ||
+        msg.includes("invalid_grant") ||
+        msg.includes("user not found")
+      ) {
+        setError("Email or password is incorrect.");
+      } else if (
+        msg.includes("rate") ||
+        msg.includes("too many requests") ||
+        msg.includes("over_email_send_rate_limit")
+      ) {
+        setError("Too many attempts. Please wait and try again.");
+      } else if (
+        msg.includes("fetch") ||
+        msg.includes("network") ||
+        (typeof navigator !== "undefined" && !navigator.onLine)
+      ) {
+        setError("Unable to connect. Please check your internet connection and try again.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     }
   };
+
+  const isFormBusy = loading || redirecting;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#F8FAFC]">
@@ -112,7 +162,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-5 p-3 rounded-lg border border-[#FECDD3] bg-[#FFF1F2] text-[#BE123C] text-xs flex items-start gap-2">
+            <div className="mb-5 p-3 rounded-lg border border-[#FECDD3] bg-[#FFF1F2] text-[#BE123C] text-xs flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -128,10 +178,11 @@ export default function LoginPage() {
                 <input
                   type="email"
                   required
+                  disabled={isFormBusy}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. owner@arkfit.com"
-                  className="w-full pl-9 pr-3 h-10 rounded border border-[#CBD5E1] bg-white text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
+                  className="w-full pl-9 pr-3 h-10 rounded border border-[#CBD5E1] bg-white text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -145,26 +196,34 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  disabled={isFormBusy}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 h-10 rounded border border-[#CBD5E1] bg-white text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
+                  className="w-full pl-9 pr-3 h-10 rounded border border-[#CBD5E1] bg-white text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full h-10 rounded bg-[#1E40AF] hover:bg-[#1D4ED8] text-white font-semibold text-sm transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              disabled={isFormBusy}
+              className="w-full h-10 rounded bg-[#1E40AF] hover:bg-[#1D4ED8] text-white font-semibold text-sm transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
-              {loading ? (
+              {redirecting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Signing In...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Redirecting to dashboard...</span>
+                </>
+              ) : loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Signing In...</span>
                 </>
               ) : (
                 <>
-                  Sign In <ArrowRight className="w-4 h-4" />
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </>
               )}
             </button>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, Loader2, CheckCircle2 } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface RazorpayPayButtonProps {
   membershipId?: string;
@@ -21,6 +21,10 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Synchronous submission lock to prevent duplicate order generation
+  const isSubmittingRef = useRef(false);
 
   // Load Razorpay Script dynamically
   const loadRazorpayScript = (): Promise<boolean> => {
@@ -38,7 +42,10 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
   };
 
   const handlePay = async () => {
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
+    setError(null);
 
     try {
       // 1. Create order on server (authoritative amount calculated server-side!)
@@ -55,7 +62,7 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
       const scriptLoaded = await loadRazorpayScript();
 
       if (!scriptLoaded || !window.Razorpay) {
-        throw new Error("Unable to load Razorpay Checkout gateway. Please check your internet connection or ad-blocker.");
+        throw new Error("Unable to connect to payment gateway. Please check your network connection.");
       }
 
       // 3. Open Razorpay Checkout modal
@@ -87,11 +94,14 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
               setSuccess(false);
             }, 1500);
           } else {
-            alert("Payment signature verification failed. Please contact gym reception.");
+            setError("Payment signature verification failed. Please contact gym reception.");
           }
+          isSubmittingRef.current = false;
+          setLoading(false);
         },
         modal: {
           ondismiss: function () {
+            isSubmittingRef.current = false;
             setLoading(false);
           },
         },
@@ -99,12 +109,14 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", function (response: any) {
-        alert("Payment failed: " + response.error.description);
+        setError("Payment failed: " + (response.error?.description || "Transaction declined"));
+        isSubmittingRef.current = false;
         setLoading(false);
       });
       rzp.open();
     } catch (err: any) {
-      alert("Error initiating payment: " + err.message);
+      setError(err.message || "Failed to initiate payment");
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
@@ -119,17 +131,31 @@ export function RazorpayPayButton({ membershipId, ptPackageId, amount, planName 
   }
 
   return (
-    <button
-      onClick={handlePay}
-      disabled={loading}
-      className="h-9 px-4 rounded bg-[#1E40AF] hover:bg-blue-800 text-white font-semibold text-xs shadow-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-    >
-      {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <CreditCard className="w-3.5 h-3.5" />
+    <div className="flex flex-col items-end gap-1.5">
+      <button
+        onClick={handlePay}
+        disabled={loading}
+        className="h-9 px-4 rounded bg-[#1E40AF] hover:bg-blue-800 text-white font-semibold text-xs shadow-sm flex items-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            <span>Connecting to Gateway...</span>
+          </>
+        ) : (
+          <>
+            <CreditCard className="w-3.5 h-3.5 shrink-0" />
+            <span>Pay Online via Razorpay</span>
+          </>
+        )}
+      </button>
+
+      {error && (
+        <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-center gap-1.5 animate-in fade-in">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
-      <span>Pay Online via Razorpay</span>
-    </button>
+    </div>
   );
 }

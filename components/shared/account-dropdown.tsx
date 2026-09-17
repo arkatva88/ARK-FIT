@@ -145,7 +145,7 @@ export function AccountDropdown({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 origin-top-right rounded-xl bg-white border border-slate-200 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[18rem] origin-top-right rounded-xl bg-white border border-slate-200 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
           {/* Header Card */}
           <div className="p-4 bg-slate-50 border-b border-slate-200">
             <div className="flex items-start justify-between gap-2">
