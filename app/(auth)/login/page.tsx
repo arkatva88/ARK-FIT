@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Shield } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -17,14 +15,6 @@ export default function LoginPage() {
 
   // Synchronous submission ref to guarantee single-request execution even on rapid multi-clicks/touches
   const isSubmittingRef = useRef(false);
-
-  // Warm client route cache immediately on mount
-  useEffect(() => {
-    router.prefetch("/owner");
-    router.prefetch("/trainer");
-    router.prefetch("/member");
-    router.prefetch("/change-password");
-  }, [router]);
 
   const setDemoCredentials = (roleEmail: string, rolePass: string) => {
     if (loading || redirecting) return;
@@ -39,7 +29,7 @@ export default function LoginPage() {
     if (isSubmittingRef.current || loading || redirecting) return;
     isSubmittingRef.current = true;
 
-    // Transition IMMEDIATELY on the client - no waiting for server
+    // Transition IMMEDIATELY on the client - zero dead period
     setLoading(true);
     setError(null);
 
@@ -53,49 +43,47 @@ export default function LoginPage() {
         throw signInError;
       }
 
-      if (data.user) {
-        // Transition button to redirecting state while Next.js routes
+      if (data?.user) {
+        // Transition button to redirecting state
         setRedirecting(true);
 
         // Fast-Path: Zero-roundtrip role resolution from user_metadata
         const role = data.user.user_metadata?.role;
         const mustChange = data.user.user_metadata?.must_change_password;
 
+        let targetUrl = "/member";
         if (mustChange) {
-          router.push("/change-password");
-          return;
-        }
-
-        if (role === "OWNER") {
-          router.push("/owner");
-          return;
+          targetUrl = "/change-password";
+        } else if (role === "OWNER") {
+          targetUrl = "/owner";
         } else if (role === "TRAINER") {
-          router.push("/trainer");
-          return;
+          targetUrl = "/trainer";
         } else if (role === "MEMBER") {
-          router.push("/member");
-          return;
+          targetUrl = "/member";
+        } else {
+          // Resilient Fallback: Only queries profiles if user_metadata is missing
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role, must_change_password")
+            .eq("id", data.user.id)
+            .maybeSingle();
+
+          if (profile?.must_change_password) {
+            targetUrl = "/change-password";
+          } else if (profile?.role === "OWNER") {
+            targetUrl = "/owner";
+          } else if (profile?.role === "TRAINER") {
+            targetUrl = "/trainer";
+          } else {
+            targetUrl = "/member";
+          }
         }
 
-        // Resilient Fallback: Only queries profiles if user_metadata is missing
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role, must_change_password")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          throw new Error("Unable to fetch user profile. Please contact the gym owner.");
-        }
-
-        if (profile.must_change_password) {
-          router.push("/change-password");
-          return;
-        }
-
-        if (profile.role === "OWNER") router.push("/owner");
-        else if (profile.role === "TRAINER") router.push("/trainer");
-        else router.push("/member");
+        // Direct top-level navigation ensures the freshly set session cookies
+        // are immediately transmitted in HTTP headers to Next.js middleware and Server Components,
+        // eliminating client router cache redirect loops and infinite loading states completely.
+        window.location.replace(targetUrl);
+        return;
       }
     } catch (err: any) {
       // Re-enable submission on error

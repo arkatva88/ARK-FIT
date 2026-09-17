@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { KeyRound, ShieldAlert, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
   const supabase = createClient();
 
   const [password, setPassword] = useState("");
@@ -54,9 +52,10 @@ export default function ChangePasswordPage() {
 
       // 3. Fast-path redirect to role dashboard
       const role = profile?.role || user.user_metadata?.role;
-      if (role === "OWNER") router.push("/owner");
-      else if (role === "TRAINER") router.push("/trainer");
-      else router.push("/member");
+      let targetUrl = "/member";
+      if (role === "OWNER") targetUrl = "/owner";
+      else if (role === "TRAINER") targetUrl = "/trainer";
+      window.location.replace(targetUrl);
     } catch (err: any) {
       setError(err.message || "Failed to update password. Please try again.");
     } finally {
