@@ -15,6 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { MemberMobileNav } from "@/components/member/member-mobile-nav";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { PushNotificationGate } from "@/components/shared/push-notification-gate";
 
 export default async function MemberLayout({
   children,
@@ -106,6 +107,7 @@ export default async function MemberLayout({
             }}
             gymName={gymName}
             branchName={isPtMember ? "PT Athlete" : "Member"}
+            position="sidebar"
           />
         </div>
       </aside>
@@ -166,6 +168,9 @@ export default async function MemberLayout({
           {children}
         </main>
       </div>
+
+      {/* Mandatory Push Notification Permission Gate */}
+      <PushNotificationGate role="MEMBER" userName={profile.full_name} />
 
       {/* Mobile-first Bottom Navigation with active indicators */}
       <MemberMobileNav isPtMember={isPtMember} />

@@ -71,6 +71,31 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 /**
+ * Returns current browser notification permission status
+ */
+export function getNotificationPermission(): NotificationPermission | "unsupported" {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "unsupported";
+  }
+  return Notification.permission;
+}
+
+/**
+ * Checks if the current browser already has an active push subscription
+ */
+export async function isDevicePushSubscribed(): Promise<boolean> {
+  if (!isPushNotificationSupported()) return false;
+  if (Notification.permission !== "granted") return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    return !!sub;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Requests notification permission from user and subscribes to PushManager
  */
 export async function subscribeUserToPush(): Promise<{
@@ -103,46 +128,94 @@ export async function subscribeUserToPush(): Promise<{
   // 3. Fetch VAPID Public Key
   let vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
-    const res = await fetch("/api/notifications/vapid-public-key");
-    const data = await res.json();
-    vapidPublicKey = data.publicKey;
+    try {
+      const res = await fetch("/api/notifications/vapid-public-key");
+      const data = await res.json();
+      vapidPublicKey = data.publicKey;
+    } catch {
+      // Fallback
+    }
   }
 
   if (!vapidPublicKey) {
     return { success: false, error: "Public VAPID key is missing on the server." };
   }
 
+  const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
+
   // 4. Check for existing subscription or subscribe
   let sub = await reg.pushManager.getSubscription();
 
+  if (sub) {
+    // Check if existing subscription server key matches
+    const rawExistingKey = sub.options?.applicationServerKey;
+    let keysMatch = false;
+    if (rawExistingKey) {
+      const existingKeyArray = new Uint8Array(rawExistingKey);
+      keysMatch =
+        existingKeyArray.length === applicationServerKey.length &&
+        existingKeyArray.every((val, i) => val === applicationServerKey[i]);
+    }
+
+    if (!keysMatch) {
+      // Unsubscribe stale subscription with mismatched key
+      await sub.unsubscribe().catch(() => {});
+      sub = null;
+    }
+  }
+
   if (!sub) {
-    const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey as unknown as BufferSource,
-    });
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey as unknown as BufferSource,
+      });
+    } catch (err: any) {
+      // If subscribe threw InvalidStateError, force-unsubscribe any orphaned subscription and retry once
+      try {
+        const orphaned = await reg.pushManager.getSubscription();
+        if (orphaned) await orphaned.unsubscribe().catch(() => {});
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey as unknown as BufferSource,
+        });
+      } catch (retryErr: any) {
+        return {
+          success: false,
+          error: "Failed to create push subscription: " + (retryErr.message || err.message),
+        };
+      }
+    }
+  }
+
+  if (!sub) {
+    return { success: false, error: "PushManager failed to provide a valid subscription." };
   }
 
   // 5. Send subscription to server
-  const subJson = sub.toJSON();
-  const res = await fetch("/api/notifications/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      subscription: subJson,
-      deviceLabel: getDeviceLabel(),
-    }),
-  });
+  try {
+    const subJson = sub.toJSON();
+    const res = await fetch("/api/notifications/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subJson,
+        deviceLabel: getDeviceLabel(),
+      }),
+    });
 
-  const responseData = await res.json();
-  if (!res.ok) {
-    return {
-      success: false,
-      error: responseData.error || "Failed to save push subscription on server.",
-    };
+    const responseData = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: responseData.error || "Failed to save push subscription on server.",
+      };
+    }
+
+    return { success: true, subscription: sub };
+  } catch (err: any) {
+    return { success: false, error: "Network error saving subscription: " + err.message };
   }
-
-  return { success: true, subscription: sub };
 }
 
 /**

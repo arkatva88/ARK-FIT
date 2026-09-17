@@ -16,6 +16,7 @@ import {
   Loader2,
   Smartphone,
   ExternalLink,
+  Send,
 } from "lucide-react";
 import { InAppNotification, NotificationType } from "@/lib/notifications/types";
 import { formatTimeAgo } from "@/lib/utils";
@@ -37,8 +38,29 @@ export function NotificationBell() {
   const [pushSupported, setPushSupported] = useState(true);
   const [permissionState, setPermissionState] = useState<NotificationPermission | "unsupported">("default");
   const [subscribingPush, setSubscribingPush] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+  const [testPushMsg, setTestPushMsg] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleSendTestPush = async () => {
+    setTestingPush(true);
+    setTestPushMsg(null);
+    try {
+      const res = await fetch("/api/notifications/send-test", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setTestPushMsg(data.message || "Test push sent! Check your device notifications.");
+      } else {
+        setTestPushMsg(data.error || "Failed to send test push.");
+      }
+    } catch (err: any) {
+      setTestPushMsg(err.message || "Failed to send test push.");
+    } finally {
+      setTestingPush(false);
+      setTimeout(() => setTestPushMsg(null), 5000);
+    }
+  };
 
   // Load in-app notifications
   const fetchNotifications = useCallback(async () => {
@@ -323,18 +345,37 @@ export function NotificationBell() {
             )}
           </div>
 
-          {/* Footer Link */}
-          <div className="p-2 border-t border-slate-100 bg-slate-50/50 text-center">
+          {/* Footer Actions */}
+          <div className="p-2.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2 text-xs">
+            <button
+              onClick={handleSendTestPush}
+              disabled={testingPush}
+              className="text-[11px] text-slate-600 hover:text-[#1E40AF] font-medium flex items-center gap-1.5 px-2 py-1 rounded hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+              title="Test web push alert to this device"
+            >
+              {testingPush ? (
+                <Loader2 className="w-3 h-3 animate-spin text-[#1E40AF]" />
+              ) : (
+                <Send className="w-3 h-3 text-[#1E40AF]" />
+              )}
+              <span>{testingPush ? "Sending..." : "Send Test Push"}</span>
+            </button>
+
             <button
               onClick={() => {
                 setIsOpen(false);
                 setIsPreferencesOpen(true);
               }}
-              className="text-[11px] text-[#1E40AF] hover:underline font-semibold"
+              className="text-[11px] text-[#1E40AF] hover:underline font-semibold cursor-pointer"
             >
-              Manage Notification Channels & Quiet Hours
+              Channels & Settings
             </button>
           </div>
+          {testPushMsg && (
+            <div className="px-3 py-1.5 bg-blue-50 border-t border-blue-100 text-[10px] font-medium text-blue-800 text-center animate-in fade-in">
+              {testPushMsg}
+            </div>
+          )}
         </div>
       )}
 

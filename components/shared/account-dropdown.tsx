@@ -33,6 +33,7 @@ interface AccountDropdownProps {
   };
   gymName: string;
   branchName?: string;
+  position?: "header" | "sidebar";
 }
 
 export function AccountDropdown({
@@ -40,6 +41,7 @@ export function AccountDropdown({
   profile,
   gymName,
   branchName = "Main Branch",
+  position = "header",
 }: AccountDropdownProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -118,26 +120,34 @@ export function AccountDropdown({
     }
   };
 
+  const isSidebar = position === "sidebar";
+
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className={`relative ${isSidebar ? "w-full" : "inline-block"} text-left`} ref={dropdownRef}>
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-label="User Account Menu"
-        className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20"
+        className={
+          isSidebar
+            ? "w-full flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200/70 focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20 group"
+            : "flex items-center gap-2 p-1 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E40AF]/20"
+        }
       >
-        <div className="w-8 h-8 rounded-full bg-[#1E40AF] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-          {initials}
-        </div>
-        <div className="hidden sm:flex flex-col text-left leading-none">
-          <span className="text-xs font-semibold text-slate-900 truncate max-w-[120px]">
-            {profile.full_name}
-          </span>
-          <span className="text-[10px] text-slate-500 mt-0.5">{roleLabel}</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-[#1E40AF] text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
+            {initials}
+          </div>
+          <div className={`${isSidebar ? "flex" : "hidden sm:flex"} flex-col text-left leading-none min-w-0`}>
+            <span className="text-xs font-semibold text-slate-900 truncate max-w-[130px]">
+              {profile.full_name}
+            </span>
+            <span className="text-[10px] text-slate-500 mt-0.5">{roleLabel}</span>
+          </div>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -145,7 +155,13 @@ export function AccountDropdown({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[18rem] origin-top-right rounded-xl bg-white border border-slate-200 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+        <div
+          className={
+            isSidebar
+              ? "absolute bottom-full mb-2 left-0 w-64 origin-bottom-left rounded-xl bg-white border border-slate-200 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+              : "absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[18rem] origin-top-right rounded-xl bg-white border border-slate-200 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+          }
+        >
           {/* Header Card */}
           <div className="p-4 bg-slate-50 border-b border-slate-200">
             <div className="flex items-start justify-between gap-2">

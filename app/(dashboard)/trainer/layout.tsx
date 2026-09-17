@@ -16,6 +16,7 @@ import {
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { TrainerMobileNav } from "@/components/trainer/trainer-mobile-nav";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { PushNotificationGate } from "@/components/shared/push-notification-gate";
 
 export default async function TrainerLayout({
   children,
@@ -100,6 +101,7 @@ export default async function TrainerLayout({
               profile={{ full_name: profile.full_name, role: "TRAINER" }}
               gymName={gymName}
               branchName="Floor Coach"
+              position="sidebar"
             />
           </div>
         </div>
@@ -151,6 +153,9 @@ export default async function TrainerLayout({
       <main className="lg:ml-60 flex-1 p-4 sm:p-6 lg:p-8 space-y-6 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-8">
         {children}
       </main>
+
+      {/* Mandatory Push Notification Permission Gate */}
+      <PushNotificationGate role="TRAINER" userName={profile.full_name} />
 
       {/* Mobile Bottom Navigation for Trainers */}
       <TrainerMobileNav gymName={gymName} />

@@ -16,6 +16,7 @@ import {
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { OwnerMobileNav } from "@/components/owner/owner-mobile-nav";
 import { NotificationBell } from "@/components/shared/notification-bell";
+import { PushNotificationGate } from "@/components/shared/push-notification-gate";
 
 export default async function OwnerLayout({
   children,
@@ -98,6 +99,7 @@ export default async function OwnerLayout({
               profile={{ full_name: profile.full_name, role: "OWNER" }}
               gymName={gymName}
               branchName="Koramangala Branch"
+              position="sidebar"
             />
           </div>
         </div>
@@ -161,6 +163,9 @@ export default async function OwnerLayout({
           {children}
         </main>
       </div>
+
+      {/* Mandatory Push Notification Permission Gate */}
+      <PushNotificationGate role="OWNER" userName={profile.full_name} />
 
       {/* Mobile Bottom Navigation with drawer */}
       <OwnerMobileNav gymName={gymName} />
