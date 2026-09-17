@@ -14,6 +14,7 @@ import {
 import { formatDate } from "@/lib/utils";
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { MemberMobileNav } from "@/components/member/member-mobile-nav";
+import { NotificationBell } from "@/components/shared/notification-bell";
 
 export default async function MemberLayout({
   children,
@@ -142,9 +143,7 @@ export default async function MemberLayout({
               <span>QR Check-in</span>
             </Link>
 
-            <button className="p-1.5 text-slate-500 hover:text-slate-800 rounded hover:bg-slate-100 transition-colors">
-              <Bell className="w-4 h-4" />
-            </button>
+            <NotificationBell />
 
             <div className="h-5 w-px bg-slate-200"></div>
 

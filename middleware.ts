@@ -57,7 +57,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Fast-path for other API routes (no UI redirects)
+  // 2. Fast-path for Service Worker & PWA static assets
+  if (
+    path === "/sw.js" ||
+    path === "/offline" ||
+    path === "/manifest.webmanifest" ||
+    path.startsWith("/icons/")
+  ) {
+    if (path === "/sw.js") {
+      response.headers.set("Service-Worker-Allowed", "/");
+      response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    }
+    return response;
+  }
+
+  // 3. Fast-path for other API routes (no UI redirects)
   if (path.startsWith("/api/")) {
     return NextResponse.next();
   }
@@ -84,38 +98,49 @@ export async function middleware(request: NextRequest) {
 
   // If authenticated, check role and must_change_password
   if (user && (isProtectedRoute || path === "/login")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, must_change_password")
-      .eq("id", user.id)
-      .single();
+    let role = user.user_metadata?.role;
+    let mustChangePassword = user.user_metadata?.must_change_password;
 
-    if (profile) {
+    // Resilient fallback: Query profiles table only if role is not found in user_metadata
+    if (!role) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, must_change_password")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        role = profile.role;
+        mustChangePassword = profile.must_change_password;
+      }
+    }
+
+    if (role) {
       // Force change password on first login
-      if (profile.must_change_password && path !== "/change-password") {
+      if (mustChangePassword && path !== "/change-password") {
         return NextResponse.redirect(new URL("/change-password", request.url));
       }
 
       // If user is on /login, redirect to their role home
       if (path === "/login") {
-        if (profile.role === "OWNER") return NextResponse.redirect(new URL("/owner", request.url));
-        if (profile.role === "TRAINER") return NextResponse.redirect(new URL("/trainer", request.url));
+        if (role === "OWNER") return NextResponse.redirect(new URL("/owner", request.url));
+        if (role === "TRAINER") return NextResponse.redirect(new URL("/trainer", request.url));
         return NextResponse.redirect(new URL("/member", request.url));
       }
 
       // Guard role boundaries
-      if (isOwnerRoute && profile.role !== "OWNER") {
-        const dest = profile.role === "TRAINER" ? "/trainer" : "/member";
+      if (isOwnerRoute && role !== "OWNER") {
+        const dest = role === "TRAINER" ? "/trainer" : "/member";
         return NextResponse.redirect(new URL(dest, request.url));
       }
 
-      if (isTrainerRoute && profile.role !== "TRAINER") {
-        const dest = profile.role === "OWNER" ? "/owner" : "/member";
+      if (isTrainerRoute && role !== "TRAINER") {
+        const dest = role === "OWNER" ? "/owner" : "/member";
         return NextResponse.redirect(new URL(dest, request.url));
       }
 
-      if (isMemberRoute && profile.role !== "MEMBER") {
-        const dest = profile.role === "OWNER" ? "/owner" : "/trainer";
+      if (isMemberRoute && role !== "MEMBER") {
+        const dest = role === "OWNER" ? "/owner" : "/trainer";
         return NextResponse.redirect(new URL(dest, request.url));
       }
     }

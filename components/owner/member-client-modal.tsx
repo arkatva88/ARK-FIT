@@ -71,31 +71,31 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute right-4 top-4 p-1.5 rounded-lg text-muted-foreground hover:text-white"
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="mb-6">
-              <h2 className="text-lg font-bold text-white">Create New Gym Account</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <h2 className="text-lg font-bold text-slate-900">Create New Gym Account</h2>
+              <p className="text-xs text-slate-500 mt-1">
                 Account will be provisioned with a secure temporary password. First login forces password change.
               </p>
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="mb-4 p-3 rounded-xl border border-primary/40 bg-primary/10 text-primary text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 shrink-0" />
                 <span>Account successfully created! Refreshing...</span>
               </div>
@@ -104,17 +104,17 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Role Toggle */}
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
                   Account Role
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setRole("MEMBER")}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-bold rounded-lg border transition-all ${
                       role === "MEMBER"
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border"
+                        ? "bg-[#1E40AF] text-white border-[#1E40AF] shadow-sm"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
                     Gym Member
@@ -122,10 +122,10 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                   <button
                     type="button"
                     onClick={() => setRole("TRAINER")}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-bold rounded-lg border transition-all ${
                       role === "TRAINER"
-                        ? "bg-cyan-500 text-black border-cyan-500"
-                        : "bg-background text-muted-foreground border-border"
+                        ? "bg-[#1E40AF] text-white border-[#1E40AF] shadow-sm"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
                     Fitness Trainer
@@ -136,17 +136,17 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
               {/* Member Type (Only for MEMBER) */}
               {role === "MEMBER" && (
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
                     Member Type (PT vs Normal)
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setMemberType("NORMAL")}
-                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                      className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                         memberType === "NORMAL"
-                          ? "bg-secondary text-white border-primary/50"
-                          : "bg-background text-muted-foreground border-border"
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       Normal Member
@@ -154,10 +154,10 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                     <button
                       type="button"
                       onClick={() => setMemberType("PT")}
-                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                      className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                         memberType === "PT"
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                          : "bg-background text-muted-foreground border-border"
+                          ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
                       ★ Personal Training (PT)
@@ -168,7 +168,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
 
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                   Full Name
                 </label>
                 <input
@@ -177,14 +177,14 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                   placeholder="e.g. Rahul Sharma"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
                 />
               </div>
 
               {/* Email & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Email Address
                   </label>
                   <input
@@ -193,12 +193,12 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                     placeholder="member@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Phone (WhatsApp)
                   </label>
                   <input
@@ -206,7 +206,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                     placeholder="+91 98765 43210"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
                   />
                 </div>
               </div>
@@ -214,13 +214,13 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
               {/* Trainer Assignment for PT or Normal Member */}
               {role === "MEMBER" && (
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     {memberType === "PT" ? "Dedicated PT Trainer" : "Assigned Floor Trainer (Optional)"}
                   </label>
                   <select
                     value={assignedTrainerId}
                     onChange={(e) => setAssignedTrainerId(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
                   >
                     <option value="">— Select Trainer —</option>
                     {trainers.map((t) => {
@@ -238,7 +238,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
               {/* Trainer Specialization */}
               {role === "TRAINER" && (
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Specialization
                   </label>
                   <input
@@ -246,44 +246,44 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                     placeholder="e.g. Muscle Hypertrophy & Fat Loss"
                     value={specialization}
                     onChange={(e) => setSpecialization(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF] transition-colors"
                   />
                 </div>
               )}
 
               {/* Temporary Password */}
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                   Temporary Password
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     minLength={6}
                     value={tempPassword}
                     onChange={(e) => setTempPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-sm text-white font-mono"
+                    className="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-50 border border-slate-300 text-sm text-slate-900 font-mono focus:outline-none focus:border-[#1E40AF] focus:ring-1 focus:ring-[#1E40AF]"
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground mt-1 block">
+                <span className="text-[10px] text-slate-500 mt-1 block">
                   Share this temporary password with the user. They will be forced to change it on login.
                 </span>
               </div>
 
-              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-muted text-muted-foreground hover:text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md shadow-primary/20 flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2 rounded-lg bg-[#1E40AF] hover:bg-blue-800 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
                 </button>

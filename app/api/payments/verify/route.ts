@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
+import { enqueueNotificationEvent } from "@/lib/notifications/outbox";
+import { dispatchSingleEvent } from "@/lib/notifications/dispatcher";
 
 export async function POST(req: Request) {
   try {
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
     // Verify authenticated member ownership of this order
     const { data: member } = await admin
       .from("members")
-      .select("id, gym_id")
+      .select("id, gym_id, profile_id")
       .eq("profile_id", user.id)
       .single();
 
@@ -141,6 +143,62 @@ export async function POST(req: Request) {
         })
         .eq("id", payment.member_id);
     }
+
+    // Asynchronously trigger idempotent payment confirmation notifications
+    // (Separation of concerns: push failures never rollback verified payment)
+    (async () => {
+      try {
+        if (member?.profile_id) {
+          const memberDedupKey = `PAYMENT_CONFIRMATION:${payment.id}:${member.profile_id}`;
+          const { event } = await enqueueNotificationEvent({
+            gymId: member.gym_id,
+            userId: member.profile_id,
+            type: "PAYMENT_RECEIVED",
+            title: "ARK FIT - Payment Confirmed!",
+            body: "Your gym membership payment has been confirmed. Your access is active!",
+            url: "/member/payments",
+            referenceType: "payment",
+            referenceId: payment.id,
+            deduplicationKey: memberDedupKey,
+            data: { paymentId: payment.id, orderId: razorpay_order_id },
+          });
+
+          if (event) {
+            await dispatchSingleEvent(event.id);
+          }
+
+          // Also trigger operational notification for gym owner
+          const { data: owner } = await admin
+            .from("profiles")
+            .select("id")
+            .eq("gym_id", member.gym_id)
+            .eq("role", "OWNER")
+            .maybeSingle();
+
+          if (owner?.id) {
+            const ownerDedupKey = `OWNER_PAYMENT_COLLECTED:${payment.id}:${owner.id}`;
+            const { event: ownerEvent } = await enqueueNotificationEvent({
+              gymId: member.gym_id,
+              userId: owner.id,
+              type: "PAYMENT_RECEIVED",
+              title: "ARK FIT - New Payment Collected",
+              body: `Payment confirmed for order #${razorpay_order_id.slice(-6)}.`,
+              url: "/owner/payments",
+              referenceType: "payment",
+              referenceId: payment.id,
+              deduplicationKey: ownerDedupKey,
+              data: { paymentId: payment.id },
+            });
+
+            if (ownerEvent) {
+              await dispatchSingleEvent(ownerEvent.id);
+            }
+          }
+        }
+      } catch (notifyErr) {
+        console.error("Payment confirmation notification error:", notifyErr);
+      }
+    })();
 
     return NextResponse.json({
       success: true,

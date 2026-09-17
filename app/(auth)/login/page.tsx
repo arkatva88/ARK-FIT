@@ -35,6 +35,27 @@ export default function LoginPage() {
       }
 
       if (data.user) {
+        // Fast-Path: Zero-roundtrip role resolution from user_metadata
+        const role = data.user.user_metadata?.role;
+        const mustChange = data.user.user_metadata?.must_change_password;
+
+        if (mustChange) {
+          router.push("/change-password");
+          return;
+        }
+
+        if (role === "OWNER") {
+          router.push("/owner");
+          return;
+        } else if (role === "TRAINER") {
+          router.push("/trainer");
+          return;
+        } else if (role === "MEMBER") {
+          router.push("/member");
+          return;
+        }
+
+        // Resilient Fallback: Only queries profiles if user_metadata is missing
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role, must_change_password")

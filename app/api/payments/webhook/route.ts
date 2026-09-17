@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
+import { enqueueNotificationEvent } from "@/lib/notifications/outbox";
+import { dispatchSingleEvent } from "@/lib/notifications/dispatcher";
 
 export async function POST(req: Request) {
   try {
@@ -77,17 +79,49 @@ export async function POST(req: Request) {
               })
               .eq("id", existingPayment.membership_id);
 
-            await admin
+              await admin
+                .from("members")
+                .update({
+                  status: "ACTIVE",
+                  membership_expiry: newExpiry,
+                })
+                .eq("id", existingPayment.member_id);
+            }
+
+            // Asynchronously enqueue idempotent payment received notification
+            const { data: member } = await admin
               .from("members")
-              .update({
-                status: "ACTIVE",
-                membership_expiry: newExpiry,
-              })
-              .eq("id", existingPayment.member_id);
+              .select("profile_id, gym_id")
+              .eq("id", existingPayment.member_id)
+              .single();
+
+            if (member?.profile_id) {
+              const memberDedupKey = `PAYMENT_CONFIRMATION:${existingPayment.id}:${member.profile_id}`;
+              (async () => {
+                try {
+                  const { event } = await enqueueNotificationEvent({
+                    gymId: member.gym_id,
+                    userId: member.profile_id,
+                    type: "PAYMENT_RECEIVED",
+                    title: "ARK FIT - Payment Confirmed!",
+                    body: "Your gym membership payment has been confirmed via Razorpay. Your access is active!",
+                    url: "/member/payments",
+                    referenceType: "payment",
+                    referenceId: existingPayment.id,
+                    deduplicationKey: memberDedupKey,
+                    data: { paymentId: existingPayment.id, orderId },
+                  });
+                  if (event) {
+                    await dispatchSingleEvent(event.id);
+                  }
+                } catch (e) {
+                  console.error("Webhook notification enqueue/dispatch failed:", e);
+                }
+              })();
+            }
           }
         }
       }
-    }
 
     return NextResponse.json({ status: "ok" });
   } catch (error: any) {

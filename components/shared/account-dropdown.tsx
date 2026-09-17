@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getQueryClient } from "@/lib/query-client";
+import { unsubscribeUserFromPush } from "@/lib/notifications/client";
 import {
   User,
   Settings,
@@ -94,7 +95,10 @@ export function AccountDropdown({
     setSigningOut(true);
 
     try {
-      // 1. Clear TanStack query cache to prevent stale authenticated data in client memory
+      // 1. Revoke browser push subscription for this session
+      await unsubscribeUserFromPush().catch(() => {});
+
+      // 2. Clear TanStack query cache to prevent stale authenticated data in client memory
       const queryClient = getQueryClient();
       queryClient.clear();
 

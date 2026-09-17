@@ -52,7 +52,7 @@ export function OwnerMobileNav({ gymName = "ARK FIT" }: OwnerMobileNavProps) {
   return (
     <>
       {/* Persistent Bottom Bar (Mobile only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-40 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 pb-[env(safe-area-inset-bottom,0px)] bg-white border-t border-slate-200 z-40 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         {primaryItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.exact

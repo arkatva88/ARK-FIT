@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       user_metadata: {
         full_name: fullName,
         role,
+        must_change_password: true,
       },
     });
 

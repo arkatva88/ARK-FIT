@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { OwnerMobileNav } from "@/components/owner/owner-mobile-nav";
+import { NotificationBell } from "@/components/shared/notification-bell";
 
 export default async function OwnerLayout({
   children,
@@ -139,6 +140,8 @@ export default async function OwnerLayout({
               <span className="text-[#1E40AF] font-bold">₹</span>
               <span>New Collection</span>
             </Link>
+
+            <NotificationBell />
 
             <div className="h-4 w-px bg-[#E2E8F0]" />
 

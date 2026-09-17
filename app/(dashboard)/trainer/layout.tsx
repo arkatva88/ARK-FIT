@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AccountDropdown } from "@/components/shared/account-dropdown";
 import { TrainerMobileNav } from "@/components/trainer/trainer-mobile-nav";
+import { NotificationBell } from "@/components/shared/notification-bell";
 
 export default async function TrainerLayout({
   children,
@@ -131,9 +132,7 @@ export default async function TrainerLayout({
             <span>Floor Shift: Active Today</span>
           </div>
 
-          <button className="p-1.5 text-slate-500 hover:text-slate-800 rounded hover:bg-slate-100 relative transition-colors">
-            <Bell className="w-4 h-4" />
-          </button>
+          <NotificationBell />
 
           <div className="h-5 w-px bg-slate-200"></div>
 

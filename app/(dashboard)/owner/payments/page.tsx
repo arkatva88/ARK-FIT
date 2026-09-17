@@ -207,7 +207,11 @@ export default async function OwnerPaymentsPage({ searchParams }: PageProps) {
 
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         {!isPaid && (
-                          <PaymentRemindButton memberName={memberProfile?.full_name || "Member"} />
+                          <PaymentRemindButton
+                            memberName={memberProfile?.full_name || "Member"}
+                            memberId={p.member_id}
+                            paymentId={p.id}
+                          />
                         )}
                       </td>
                     </tr>
