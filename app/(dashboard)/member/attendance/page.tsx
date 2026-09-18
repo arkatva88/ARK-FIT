@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { QrCode, CheckCircle2, ArrowRight, Dumbbell, Sparkles } from "lucide-react";
+import { QrCode, CheckCircle2, ArrowRight, Dumbbell } from "lucide-react";
 
 export default async function MemberAttendancePage() {
   const supabase = createClient();
@@ -103,7 +103,7 @@ export default async function MemberAttendancePage() {
             href="/attendance/qr"
             className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded bg-[#1E40AF] text-white hover:bg-blue-800 text-xs font-semibold shadow-sm transition-colors whitespace-nowrap self-start sm:self-auto"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <QrCode className="w-3.5 h-3.5" />
             <span>Check In Now</span>
             <ArrowRight className="w-3 h-3 ml-0.5" />
           </Link>

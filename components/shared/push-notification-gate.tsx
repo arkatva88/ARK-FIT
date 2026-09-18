@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Loader2,
   X,
-  Sparkles,
 } from "lucide-react";
 import {
   isPushNotificationSupported,
@@ -150,7 +149,7 @@ export function PushNotificationGate({ role, userName }: PushNotificationGatePro
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3 h-3 text-blue-200" />
+                  <Bell className="w-3.5 h-3.5 text-blue-200" />
                   <span>Enable Notifications</span>
                 </>
               )}

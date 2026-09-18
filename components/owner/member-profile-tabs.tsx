@@ -13,7 +13,6 @@ import {
   TrendingUp,
   FileText,
   Clock,
-  Sparkles,
 } from "lucide-react";
 
 interface MemberProfileTabsProps {
@@ -424,7 +423,7 @@ export function MemberProfileTabs({
             </>
           ) : (
             <div className="p-8 text-center border border-dashed border-slate-300 rounded-lg bg-white">
-              <Sparkles className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
+              <Target className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
               <h4 className="text-sm font-bold text-slate-900">Normal Member</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                 This client is enrolled as a Normal Member. Upgrade to Personal Training (PT) to assign packages and schedule dedicated one-on-one floor sessions.

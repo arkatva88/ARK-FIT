@@ -12,7 +12,6 @@ import {
   ArrowRight,
   LogIn,
   Loader2,
-  Sparkles,
   CreditCard,
 } from "lucide-react";
 import Link from "next/link";
@@ -254,7 +253,7 @@ function QrAttendanceContent() {
                     href="/member/workout"
                     className="w-full h-9 rounded bg-[#1E40AF] hover:bg-blue-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Dumbbell className="w-3.5 h-3.5" />
                     <span>Start Floor Workout</span>
                   </Link>
                 </div>

@@ -20,6 +20,7 @@ export default async function OwnerPaymentsPage({ searchParams }: PageProps) {
     .from("payments")
     .select(`
       id,
+      member_id,
       amount,
       currency,
       payment_method,
@@ -157,7 +158,9 @@ export default async function OwnerPaymentsPage({ searchParams }: PageProps) {
             <tbody className="divide-y divide-slate-100">
               {payments && payments.length > 0 ? (
                 payments.map((p: any) => {
-                  const memberProfile = Array.isArray(p.members?.profiles) ? p.members?.profiles[0] : p.members?.profiles;
+                  const memberObj = Array.isArray(p.members) ? p.members[0] : p.members;
+                  const memberProfile = Array.isArray(memberObj?.profiles) ? memberObj?.profiles[0] : memberObj?.profiles;
+                  const resolvedMemberId = p.member_id || memberObj?.id;
                   const isPaid = p.status === "PAID";
                   const isOverdue = p.status === "OVERDUE";
 
@@ -165,7 +168,7 @@ export default async function OwnerPaymentsPage({ searchParams }: PageProps) {
                     <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <Link
-                          href={`/owner/members/${p.members?.id}`}
+                          href={resolvedMemberId ? `/owner/members/${resolvedMemberId}` : "#"}
                           className="font-semibold text-slate-900 hover:text-blue-700 block text-sm"
                         >
                           {memberProfile?.full_name || "Unknown"}
@@ -209,7 +212,7 @@ export default async function OwnerPaymentsPage({ searchParams }: PageProps) {
                         {!isPaid && (
                           <PaymentRemindButton
                             memberName={memberProfile?.full_name || "Member"}
-                            memberId={p.member_id}
+                            memberId={resolvedMemberId}
                             paymentId={p.id}
                           />
                         )}

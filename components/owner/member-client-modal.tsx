@@ -165,7 +165,7 @@ export function MemberClientModal({ trainers, isOpenDefault = false }: MemberCli
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                       }`}
                     >
-                      ★ Personal Training (PT)
+                      Personal Training (PT)
                     </button>
                   </div>
                 </div>

@@ -22,9 +22,13 @@ export function PaymentRemindButton({
   const handleClick = async () => {
     if (isSubmittingRef.current || loading) return;
 
-    if (!memberId) {
+    if (!memberId && !paymentId) {
       setFeedback("Member ID missing");
       setFeedbackType("error");
+      setTimeout(() => {
+        setFeedback(null);
+        isSubmittingRef.current = false;
+      }, 3500);
       return;
     }
 

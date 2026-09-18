@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowRight,
   Target,
-  Sparkles,
   Clock,
   CheckCircle2,
   Calendar,

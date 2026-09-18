@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-import { Users, Search, Plus, Sparkles, Phone, ArrowUpRight } from "lucide-react";
+import { Users, Search, Plus, Target, Phone, ArrowUpRight } from "lucide-react";
 import { MemberClientModal } from "@/components/owner/member-client-modal";
 
 interface PageProps {
@@ -187,8 +187,8 @@ export default async function OwnerMembersPage({ searchParams }: PageProps) {
 
                       <td className="px-6 py-3.5 whitespace-nowrap">
                         {isPt ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[#B45309] text-[11px] font-semibold">
-                            <Sparkles className="w-3 h-3" /> PT Member
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                            <Target className="w-3 h-3 text-amber-700" /> PT Member
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] text-[#64748B] text-[11px] font-medium">

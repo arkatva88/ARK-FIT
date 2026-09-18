@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, Clock, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, Circle, Clock, ExternalLink, Loader2, Dumbbell } from "lucide-react";
 
 interface ExerciseItem {
   name: string;
@@ -160,7 +160,7 @@ export function WorkoutChecklist({
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>{isAllSelected ? "Finish & Log Workout" : "Log Session"}</span>
                   </>
                 )}

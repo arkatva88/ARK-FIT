@@ -32,9 +32,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { memberId, paymentId } = body;
+    let { memberId, paymentId } = body;
 
-    if (!memberId) {
+    let targetMemberId = memberId;
+    if (!targetMemberId && paymentId) {
+      const { data: pRec } = await admin
+        .from("payments")
+        .select("member_id")
+        .eq("id", paymentId)
+        .eq("gym_id", ownerProfile.gym_id)
+        .single();
+      if (pRec?.member_id) {
+        targetMemberId = pRec.member_id;
+      }
+    }
+
+    if (!targetMemberId) {
       return NextResponse.json(
         { error: "memberId is required." },
         { status: 400 }
@@ -58,7 +71,7 @@ export async function POST(req: Request) {
           currency
         )
       `)
-      .eq("id", memberId)
+      .eq("id", targetMemberId)
       .eq("gym_id", ownerProfile.gym_id)
       .single();
 

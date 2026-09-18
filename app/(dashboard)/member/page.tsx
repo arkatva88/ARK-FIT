@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import {
   Dumbbell,
   Target,
-  Flame,
+  Activity,
   CalendarCheck,
   TrendingUp,
   ArrowRight,
@@ -173,9 +173,9 @@ export default async function MemberHomePage() {
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               {greeting}, {memberProfile?.full_name || "Athlete"}!
             </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800">
-              <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-              <span>4-day streak</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-800">
+              <Activity className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Active Training</span>
             </span>
           </div>
           <p className="text-sm text-slate-500">
