@@ -6,6 +6,7 @@ import { ArrowLeft, Phone } from "lucide-react";
 import { MemberProfileTabs } from "@/components/owner/member-profile-tabs";
 import { EditMemberModal } from "@/components/owner/edit-member-modal";
 import { DeleteMemberButton } from "@/components/owner/delete-member-button";
+import { ResetPasswordModal } from "@/components/owner/reset-password-modal";
 
 interface PageProps {
   params: { id: string };
@@ -232,6 +233,7 @@ export default async function OwnerMemberDetailPage({ params, searchParams }: Pa
             </div>
 
             <div className="flex items-center gap-2 pl-0 sm:pl-4 sm:border-l sm:border-slate-200">
+              <ResetPasswordModal memberId={member.id} memberName={profile?.full_name || "Member"} />
               <EditMemberModal member={member} trainers={gymTrainers || []} />
               <DeleteMemberButton memberId={member.id} memberName={profile?.full_name || "Member"} />
             </div>

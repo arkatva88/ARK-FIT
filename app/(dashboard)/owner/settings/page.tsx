@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { CreditCard, Mail, Building } from "lucide-react";
+import { CreditCard, Mail, QrCode } from "lucide-react";
+import { GymSettingsForm } from "@/components/owner/gym-settings-form";
+import { GymQrModal } from "@/components/owner/gym-qr-modal";
 
 export default async function OwnerSettingsPage() {
   const supabase = createClient();
@@ -12,46 +14,31 @@ export default async function OwnerSettingsPage() {
           Gym Settings & Integrations
         </h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Manage gym identity, payment gateway configuration, and transactional notification channels.
+          Manage gym identity, currency, timezone, payment gateway configuration, and transactional notification channels.
         </p>
       </section>
 
-      {/* Gym Identity */}
-      <div className="p-5 rounded-lg border border-slate-200 bg-white shadow-sm space-y-4">
-        <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Building className="w-4 h-4 text-[#1E40AF]" /> Gym Profile
-        </h2>
+      {/* Interactive Gym Identity & Locale Form */}
+      <GymSettingsForm gym={gym} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+      {/* Gym Attendance QR Code Station */}
+      <div className="p-5 rounded-lg border border-slate-200 bg-white shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <label className="block text-slate-500 uppercase font-semibold text-[10px] mb-1">Gym Name</label>
-            <input
-              type="text"
-              readOnly
-              value={gym?.name || "ARK FIT"}
-              className="w-full h-9 px-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-900 font-medium"
-            />
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-[#1E40AF]" /> Gym Attendance QR Station
+            </h2>
+            <p className="text-xs text-slate-600 leading-relaxed mt-1">
+              One persistent, rotatable QR check-in code for your front desk, turnstile, or entrance wall poster.
+              Athletes scan with their phone to instantly log attendance and open their workout split.
+            </p>
           </div>
+          <GymQrModal buttonText="Manage & Print Poster" />
+        </div>
 
-          <div>
-            <label className="block text-slate-500 uppercase font-semibold text-[10px] mb-1">Contact Phone</label>
-            <input
-              type="text"
-              readOnly
-              value={gym?.phone || "+91 98765 43210"}
-              className="w-full h-9 px-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-900 font-medium"
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-slate-500 uppercase font-semibold text-[10px] mb-1">Gym Address</label>
-            <input
-              type="text"
-              readOnly
-              value={gym?.address || "123 Fitness Boulevard, Koramangala, Bangalore, India"}
-              className="w-full h-9 px-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-900 font-medium"
-            />
-          </div>
+        <div className="p-3 rounded border border-blue-200 bg-blue-50/60 text-xs text-blue-900 flex items-center gap-2 font-medium">
+          <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+          QR check-in token is active. Contains zero sensitive athlete or billing data and enforces multi-tenant gym isolation server-side.
         </div>
       </div>
 

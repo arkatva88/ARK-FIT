@@ -5,11 +5,13 @@ export type MembershipStatus = "ACTIVE" | "EXPIRED" | "CANCELLED";
 export type PaymentMethod = "CASH" | "UPI" | "RAZORPAY";
 export type PaymentStatus = "PAID" | "PENDING" | "OVERDUE" | "FAILED";
 export type AttendanceStatus = "PRESENT" | "ABSENT";
+export type AttendanceMethod = "QR" | "MANUAL_OWNER" | "MANUAL_TRAINER";
 export type PtSessionStatus = "SCHEDULED" | "COMPLETED" | "MISSED" | "CANCELLED" | "RESCHEDULED";
 export type PtPackageStatus = "ACTIVE" | "COMPLETED" | "EXPIRED";
 export type ExerciseCategory = "CHEST" | "BACK" | "SHOULDERS" | "BICEPS" | "TRICEPS" | "LEGS" | "CORE" | "CARDIO";
 export type DietGoal = "MUSCLE_GAIN" | "FAT_LOSS" | "MAINTENANCE";
 export type NoteStatus = "OPEN" | "RESOLVED";
+export type WorkoutScheduleStatus = "SCHEDULED" | "COMPLETED" | "MISSED" | "RESCHEDULED" | "SKIPPED" | "CANCELLED";
 
 export interface Gym {
   id: string;
@@ -18,6 +20,8 @@ export interface Gym {
   phone?: string | null;
   address?: string | null;
   currency: string;
+  timezone?: string;
+  qr_code_token?: string;
   created_at: string;
   updated_at: string;
 }
@@ -116,9 +120,24 @@ export interface Attendance {
   member_id: string;
   attendance_date: string;
   status: AttendanceStatus;
+  method?: AttendanceMethod;
   check_in_time?: string | null;
+  recorded_by?: string | null;
+  updated_by?: string | null;
+  updated_at?: string;
   created_at: string;
   member?: Member & { profile?: Profile };
+}
+
+export interface AuditLog {
+  id: string;
+  gym_id: string;
+  actor_id?: string | null;
+  event_type: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
 }
 
 export interface Payment {
@@ -171,6 +190,36 @@ export interface WorkoutPlan {
   is_pt_workout: boolean;
   status: "ACTIVE" | "ARCHIVED";
   created_at: string;
+}
+
+export interface WorkoutSchedule {
+  id: string;
+  gym_id: string;
+  member_id: string;
+  plan_id?: string | null;
+  trainer_id?: string | null;
+  workout_date: string;
+  day_name: string;
+  title: string;
+  exercises: {
+    name: string;
+    sets: number;
+    reps: string;
+    rest: string;
+    notes?: string;
+    video_url?: string;
+  }[];
+  status: WorkoutScheduleStatus;
+  completed_at?: string | null;
+  completed_exercises: number[];
+  rescheduled_to_date?: string | null;
+  rescheduled_from_id?: string | null;
+  rescheduled_by?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  member?: Member & { profile?: Profile };
+  trainer?: Trainer & { profile?: Profile };
 }
 
 export interface DietPlan {

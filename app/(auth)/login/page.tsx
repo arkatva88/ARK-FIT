@@ -51,31 +51,38 @@ export default function LoginPage() {
         const role = data.user.user_metadata?.role;
         const mustChange = data.user.user_metadata?.must_change_password;
 
-        let targetUrl = "/member";
+        // Check if a safe return URL was requested (e.g. from QR scan)
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectParam = urlParams.get("redirect");
+        const isSafeRedirect = redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//");
+
+        let targetUrl = isSafeRedirect ? redirectParam : "/member";
         if (mustChange) {
           targetUrl = "/change-password";
-        } else if (role === "OWNER") {
-          targetUrl = "/owner";
-        } else if (role === "TRAINER") {
-          targetUrl = "/trainer";
-        } else if (role === "MEMBER") {
-          targetUrl = "/member";
-        } else {
-          // Resilient Fallback: Only queries profiles if user_metadata is missing
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, must_change_password")
-            .eq("id", data.user.id)
-            .maybeSingle();
-
-          if (profile?.must_change_password) {
-            targetUrl = "/change-password";
-          } else if (profile?.role === "OWNER") {
+        } else if (!isSafeRedirect) {
+          if (role === "OWNER") {
             targetUrl = "/owner";
-          } else if (profile?.role === "TRAINER") {
+          } else if (role === "TRAINER") {
             targetUrl = "/trainer";
-          } else {
+          } else if (role === "MEMBER") {
             targetUrl = "/member";
+          } else {
+            // Resilient Fallback: Only queries profiles if user_metadata is missing
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role, must_change_password")
+              .eq("id", data.user.id)
+              .maybeSingle();
+
+            if (profile?.must_change_password) {
+              targetUrl = "/change-password";
+            } else if (profile?.role === "OWNER") {
+              targetUrl = "/owner";
+            } else if (profile?.role === "TRAINER") {
+              targetUrl = "/trainer";
+            } else {
+              targetUrl = "/member";
+            }
           }
         }
 

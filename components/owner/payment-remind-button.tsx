@@ -1,7 +1,7 @@
 "use client";
 
-import { Send, Check, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Send, Check, Loader2, AlertCircle } from "lucide-react";
+import { useState, useRef } from "react";
 
 interface PaymentRemindButtonProps {
   memberName: string;
@@ -15,15 +15,20 @@ export function PaymentRemindButton({
   paymentId,
 }: PaymentRemindButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<"success" | "info" | "error">("success");
+  const isSubmittingRef = useRef(false);
 
   const handleClick = async () => {
+    if (isSubmittingRef.current || loading) return;
+
     if (!memberId) {
-      alert(`Reminder queued for ${memberName}.`);
+      setFeedback("Member ID missing");
+      setFeedbackType("error");
       return;
     }
 
+    isSubmittingRef.current = true;
     setLoading(true);
     setFeedback(null);
 
@@ -40,14 +45,31 @@ export function PaymentRemindButton({
         throw new Error(data.error || "Failed to dispatch reminder");
       }
 
-      setSent(true);
-      setFeedback(data.isDuplicate ? "Already reminded today" : "Push reminder sent");
+      if (data.code === "ALREADY_PAID") {
+        setFeedback("Payment is already completed");
+        setFeedbackType("info");
+      } else if (data.code === "NO_DUES") {
+        setFeedback("No dues pending");
+        setFeedbackType("info");
+      } else if (data.isDuplicate) {
+        setFeedback("Reminder already sent recently");
+        setFeedbackType("info");
+      } else {
+        setFeedback("Reminder sent");
+        setFeedbackType("success");
+      }
+
       setTimeout(() => {
-        setSent(false);
         setFeedback(null);
-      }, 4000);
+        isSubmittingRef.current = false;
+      }, 3500);
     } catch (err: any) {
-      alert(`Failed to send reminder: ${err.message}`);
+      setFeedback(err.message || "Failed to send");
+      setFeedbackType("error");
+      setTimeout(() => {
+        setFeedback(null);
+        isSubmittingRef.current = false;
+      }, 3500);
     } finally {
       setLoading(false);
     }
@@ -56,19 +78,31 @@ export function PaymentRemindButton({
   return (
     <button
       onClick={handleClick}
-      disabled={sent || loading}
-      title={feedback || "Send Web Push & In-app payment reminder"}
-      className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors disabled:opacity-60"
+      disabled={loading || !!feedback}
+      title={feedback || `Send payment reminder to ${memberName}`}
+      className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded border text-xs font-medium transition-colors disabled:cursor-not-allowed ${
+        feedback
+          ? feedbackType === "success"
+            ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+            : feedbackType === "info"
+            ? "bg-amber-50 border-amber-300 text-amber-700"
+            : "bg-rose-50 border-rose-300 text-rose-700"
+          : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-60"
+      }`}
     >
       {loading ? (
         <>
           <Loader2 className="w-3 h-3 animate-spin text-[#1E40AF]" />
           <span>Sending...</span>
         </>
-      ) : sent ? (
+      ) : feedback ? (
         <>
-          <Check className="w-3 h-3 text-emerald-600" />
-          <span className="text-emerald-700 font-semibold">{feedback || "Reminded"}</span>
+          {feedbackType === "success" ? (
+            <Check className="w-3 h-3 text-emerald-600" />
+          ) : (
+            <AlertCircle className="w-3 h-3 text-amber-600" />
+          )}
+          <span className="font-semibold">{feedback}</span>
         </>
       ) : (
         <>

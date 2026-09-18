@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { Search, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Loader2, QrCode, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 interface MemberAttendanceItem {
@@ -10,6 +9,7 @@ interface MemberAttendanceItem {
   member_type: "NORMAL" | "PT";
   attendance_status: "PRESENT" | "ABSENT";
   check_in_time?: string | null;
+  method?: string | null;
   profiles?: { full_name?: string; phone?: string };
   assigned_trainer?: { profiles?: { full_name?: string } };
 }
@@ -20,7 +20,6 @@ interface AttendanceClientListProps {
 }
 
 export function AttendanceClientList({ selectedDate, members: initialMembers }: AttendanceClientListProps) {
-  const supabase = createClient();
   const [members, setMembers] = useState(initialMembers);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"ALL" | "PRESENT" | "ABSENT" | "PT">("ALL");
@@ -34,29 +33,45 @@ export function AttendanceClientList({ selectedDate, members: initialMembers }: 
     setMembers((prev) =>
       prev.map((m) =>
         m.id === memberId
-          ? { ...m, attendance_status: nextStatus, check_in_time: nextStatus === "PRESENT" ? new Date().toISOString() : null }
+          ? {
+              ...m,
+              attendance_status: nextStatus,
+              check_in_time: nextStatus === "PRESENT" ? new Date().toISOString() : null,
+              method: nextStatus === "PRESENT" ? "MANUAL_OWNER" : null,
+            }
           : m
       )
     );
 
     try {
-      const { data: mData } = await supabase.from("members").select("gym_id").eq("id", memberId).single();
-      if (!mData) throw new Error("Member not found");
+      // Call authoritative server route enforcing same-gym isolation, role auditing, and workout schedule synchronization
+      const res = await fetch("/api/attendance/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId,
+          date: selectedDate,
+          status: nextStatus,
+        }),
+      });
 
-      const { error } = await supabase
-        .from("attendance")
-        .upsert(
-          {
-            gym_id: mData.gym_id,
-            member_id: memberId,
-            attendance_date: selectedDate,
-            status: nextStatus,
-            check_in_time: nextStatus === "PRESENT" ? new Date().toISOString() : null,
-          },
-          { onConflict: "gym_id,member_id,attendance_date" }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update attendance");
+
+      if (data.attendance) {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === memberId
+              ? {
+                  ...m,
+                  attendance_status: data.attendance.status,
+                  check_in_time: data.attendance.check_in_time,
+                  method: data.attendance.method,
+                }
+              : m
+          )
         );
-
-      if (error) throw error;
+      }
     } catch (err: any) {
       console.error("Attendance update failed:", err);
       // Revert optimistic update
@@ -171,10 +186,25 @@ export function AttendanceClientList({ selectedDate, members: initialMembers }: 
                         {m.assigned_trainer?.profiles?.full_name || "Floor Trainer"}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs text-slate-500 font-mono whitespace-nowrap">
-                        {m.check_in_time
-                          ? new Date(m.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                          : "—"}
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        {m.check_in_time ? (
+                          <div className="space-y-1">
+                            <span className="text-xs text-slate-700 font-mono block">
+                              {new Date(m.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {m.method === "QR" ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+                                <QrCode className="w-2.5 h-2.5" /> QR Scan
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                                <UserCheck className="w-2.5 h-2.5 text-slate-400" /> Staff
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </td>
 
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">

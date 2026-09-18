@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 import { AttendanceClientList } from "@/components/owner/attendance-client-list";
+import { GymQrModal } from "@/components/owner/gym-qr-modal";
 
 interface PageProps {
   searchParams: {
@@ -63,6 +64,7 @@ export default async function OwnerAttendancePage({ searchParams }: PageProps) {
       attendance_status: att ? att.status : "ABSENT",
       check_in_time: att ? att.check_in_time : null,
       attendance_id: att ? att.id : null,
+      method: att ? att.method : null,
     };
   }) || [];
 
@@ -82,21 +84,24 @@ export default async function OwnerAttendancePage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        {/* Date Selector */}
-        <form className="flex items-center gap-2">
-          <input
-            type="date"
-            name="date"
-            defaultValue={selectedDate}
-            className="h-9 px-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-800 focus:outline-none focus:border-blue-700"
-          />
-          <button
-            type="submit"
-            className="h-9 px-4 bg-[#1E40AF] text-white hover:bg-blue-800 font-medium text-sm rounded shadow-sm transition-colors"
-          >
-            Load Date
-          </button>
-        </form>
+        {/* Date Selector & Gym QR Modal */}
+        <div className="flex flex-wrap items-center gap-3">
+          <GymQrModal buttonText="Reception QR Station" />
+          <form className="flex items-center gap-2">
+            <input
+              type="date"
+              name="date"
+              defaultValue={selectedDate}
+              className="h-9 px-3 text-sm bg-slate-50 border border-slate-200 rounded text-slate-800 focus:outline-none focus:border-blue-700"
+            />
+            <button
+              type="submit"
+              className="h-9 px-4 bg-[#1E40AF] text-white hover:bg-blue-800 font-medium text-sm rounded shadow-sm transition-colors"
+            >
+              Load Date
+            </button>
+          </form>
+        </div>
       </section>
 
       {/* 2. Three Metric Cards */}

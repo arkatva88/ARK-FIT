@@ -18,6 +18,8 @@ export const revalidate = 30; // 30s revalidation for dashboard metrics
 
 export default async function OwnerDashboardPage() {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const today = new Date().toISOString().split("T")[0];
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     .toISOString()
@@ -29,6 +31,7 @@ export default async function OwnerDashboardPage() {
 
   // Parallelize all dashboard queries concurrently to eliminate network waterfall
   const [
+    { data: profile },
     { count: activeMembersCount },
     { count: todayAttendanceCount },
     { data: monthPayments },
@@ -36,7 +39,13 @@ export default async function OwnerDashboardPage() {
     { data: pendingPaymentsList },
     { data: lowSessionPtPackages },
     { data: todayPtSessions },
+    { count: missedWorkoutsCount },
   ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("gym_id, gyms(name, currency, timezone)")
+      .eq("id", user?.id)
+      .single(),
     supabase
       .from("members")
       .select("*", { count: "exact", head: true })
@@ -105,7 +114,15 @@ export default async function OwnerDashboardPage() {
       .eq("session_date", today)
       .order("session_time", { ascending: true })
       .limit(6),
+    supabase
+      .from("workout_schedules")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "MISSED"),
   ]);
+
+  const gymInfo = profile?.gyms as any;
+  const gymCurrency = gymInfo?.currency || "INR";
+  const gymName = gymInfo?.name || "ARK FIT: Koramangala";
 
   const totalCollected =
     monthPayments
@@ -133,7 +150,7 @@ export default async function OwnerDashboardPage() {
             Good morning · Gym Owner Command
           </h1>
           <p className="text-xs text-[#64748B] mt-0.5">
-            ARK FIT: Koramangala 5th Block · Real-time Operational Desk
+            {gymName} · Real-time Operational Desk
           </p>
         </div>
 
@@ -195,7 +212,7 @@ export default async function OwnerDashboardPage() {
             <CreditCard className="w-4 h-4 text-[#0D9488]" />
           </div>
           <div className="text-2xl font-bold text-[#0D9488] font-mono">
-            {formatCurrency(totalCollected)}
+            {formatCurrency(totalCollected, gymCurrency)}
           </div>
           <div className="mt-2 pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[11px]">
             <span className="text-[#64748B]">Cash / UPI / Online</span>
@@ -212,7 +229,7 @@ export default async function OwnerDashboardPage() {
             <AlertTriangle className="w-4 h-4 text-[#BE123C]" />
           </div>
           <div className="text-2xl font-bold text-[#BE123C] font-mono">
-            {formatCurrency(totalPending)}
+            {formatCurrency(totalPending, gymCurrency)}
           </div>
           <div className="mt-2 pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-[11px]">
             <span className="text-[#BE123C] font-medium">{pendingPaymentsList?.length || 0} Accounts Due</span>
@@ -223,7 +240,7 @@ export default async function OwnerDashboardPage() {
         </div>
       </div>
 
-      {/* SECTION 2: ACTION REQUIRED TODAY (3 Crisp Highlight Cards) */}
+      {/* SECTION 2: ACTION REQUIRED TODAY (4 Crisp Highlight Cards) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -232,16 +249,16 @@ export default async function OwnerDashboardPage() {
               Action Required Today
             </h2>
           </div>
-          <span className="text-[11px] text-[#64748B]">Priority items needing floor follow-up</span>
+          <span className="text-[11px] text-[#64748B]">Priority operational items needing attention</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Expiring Memberships */}
           <div className="p-4 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] flex flex-col justify-between shadow-sm">
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-bold text-[#B45309] uppercase tracking-wider">
-                  Expiring in ≤ 7 Days
+                  Expiring ≤ 7 Days
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-white border border-[#FDE68A] text-[#B45309] font-bold text-xs">
                   {expiringMembers?.length || 0}
@@ -289,7 +306,7 @@ export default async function OwnerDashboardPage() {
                 </span>
               </div>
               <p className="text-[11px] text-[#64748B] mb-3">
-                Uncollected dues awaiting cash, UPI or Razorpay.
+                Uncollected dues awaiting settlement.
               </p>
 
               <div className="space-y-1.5">
@@ -299,7 +316,7 @@ export default async function OwnerDashboardPage() {
                     return (
                       <div key={p.id} className="text-xs flex items-center justify-between py-1 border-b border-[#FECDD3]/60 last:border-0">
                         <span className="text-[#0F172A] font-semibold truncate">{memberProfile?.full_name || "Athlete"}</span>
-                        <span className="text-[#BE123C] font-mono font-bold shrink-0">{formatCurrency(p.amount)}</span>
+                        <span className="text-[#BE123C] font-mono font-bold shrink-0">{formatCurrency(p.amount, gymCurrency)}</span>
                       </div>
                     );
                   })
@@ -357,6 +374,37 @@ export default async function OwnerDashboardPage() {
               className="mt-3 pt-2.5 border-t border-[#BFDBFE] text-xs font-semibold text-[#1E40AF] hover:underline flex items-center justify-between"
             >
               <span>Renew PT Packages</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* Card 4: Missed Workouts Needing Action */}
+          <div className="p-4 rounded-lg border border-purple-200 bg-purple-50 flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+                  Missed Workouts
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white border border-purple-200 text-purple-800 font-bold text-xs">
+                  {missedWorkoutsCount || 0}
+                </span>
+              </div>
+              <p className="text-[11px] text-[#64748B] mb-3">
+                Absences eligible for rescheduling.
+              </p>
+
+              <div className="p-2.5 rounded bg-white/80 border border-purple-100 text-xs text-purple-950">
+                {missedWorkoutsCount && missedWorkoutsCount > 0
+                  ? `${missedWorkoutsCount} athlete workout routine${missedWorkoutsCount > 1 ? 's' : ''} awaiting reschedule action on floor.`
+                  : "All scheduled member workouts are completed or on track."}
+              </div>
+            </div>
+
+            <Link
+              href="/owner/attendance"
+              className="mt-3 pt-2.5 border-t border-purple-200 text-xs font-semibold text-purple-800 hover:underline flex items-center justify-between"
+            >
+              <span>Review Floor Desk</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

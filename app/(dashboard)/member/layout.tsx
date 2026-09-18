@@ -138,7 +138,7 @@ export default async function MemberLayout({
           <div className="flex items-center gap-3 sm:gap-4">
             {/* QR Check-in Button */}
             <Link
-              href="/member/profile"
+              href="/member/attendance"
               className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors"
             >
               <QrCode className="w-3.5 h-3.5 text-slate-500" />

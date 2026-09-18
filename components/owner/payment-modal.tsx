@@ -37,30 +37,22 @@ export function PaymentModal({ members }: PaymentModalProps) {
     setError(null);
 
     try {
-      const { data: member } = await supabase.from("members").select("gym_id").eq("id", memberId).single();
-      if (!member) throw new Error("Member not found");
-
-      const { error: payErr } = await supabase.from("payments").insert({
-        gym_id: member.gym_id,
-        member_id: memberId,
-        amount: parseFloat(amount),
-        currency: "INR",
-        payment_method: paymentMethod,
-        status: "PAID",
-        paid_at: new Date().toISOString(),
-        notes,
+      const res = await fetch("/api/payments/record-manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId,
+          amount: parseFloat(amount),
+          paymentMethod,
+          notes,
+          durationDays: 30,
+        }),
       });
 
-      if (payErr) throw payErr;
-
-      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      await supabase
-        .from("members")
-        .update({
-          status: "ACTIVE",
-          membership_expiry: newExpiry,
-        })
-        .eq("id", memberId);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to record payment");
+      }
 
       setIsOpen(false);
       router.refresh();

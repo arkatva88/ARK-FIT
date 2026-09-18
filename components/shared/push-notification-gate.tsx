@@ -3,13 +3,9 @@
 import { useState, useEffect } from "react";
 import {
   Bell,
-  ShieldCheck,
-  AlertTriangle,
-  Loader2,
-  RefreshCw,
   CheckCircle2,
-  Lock,
-  Smartphone,
+  Loader2,
+  X,
   Sparkles,
 } from "lucide-react";
 import {
@@ -26,7 +22,7 @@ interface PushNotificationGateProps {
 
 export function PushNotificationGate({ role, userName }: PushNotificationGateProps) {
   const [mounted, setMounted] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const [status, setStatus] = useState<"idle" | "requesting" | "denied" | "unsupported" | "granted">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState(false);
@@ -34,16 +30,22 @@ export function PushNotificationGate({ role, userName }: PushNotificationGatePro
   useEffect(() => {
     setMounted(true);
 
+    // Check if dismissed in sessionStorage for this browser session
+    if (typeof window !== "undefined") {
+      const dismissed = sessionStorage.getItem("arkfit_push_dismissed");
+      if (dismissed === "true") {
+        setIsDismissed(true);
+      }
+    }
+
     if (!isPushNotificationSupported()) {
       setStatus("unsupported");
-      // Unsupported hardware/browser shouldn't permanently lock out user
       return;
     }
 
     const permission = getNotificationPermission();
 
     if (permission === "granted") {
-      setIsBlocked(false);
       setStatus("granted");
       // Ensure current device is registered in DB in background
       isDevicePushSubscribed().then((isSubscribed) => {
@@ -52,11 +54,8 @@ export function PushNotificationGate({ role, userName }: PushNotificationGatePro
         }
       });
     } else if (permission === "denied") {
-      setIsBlocked(true);
       setStatus("denied");
     } else {
-      // "default" / prompt required
-      setIsBlocked(true);
       setStatus("idle");
     }
   }, []);
@@ -70,7 +69,6 @@ export function PushNotificationGate({ role, userName }: PushNotificationGatePro
 
       if (res.success) {
         setStatus("granted");
-        setIsBlocked(false);
         setSuccessToast(true);
         setTimeout(() => setSuccessToast(false), 4000);
       } else {
@@ -93,141 +91,87 @@ export function PushNotificationGate({ role, userName }: PushNotificationGatePro
     }
   };
 
-  const handleVerifyPermission = async () => {
-    const perm = getNotificationPermission();
-    if (perm === "granted") {
-      handleRequestPermission();
-    } else if (perm === "denied") {
-      setStatus("denied");
-      setErrorMessage(
-        "Notifications are still blocked in browser site settings. Please click the lock/settings icon in your URL bar, switch Notifications to 'Allow', then click verify."
-      );
-    } else {
-      handleRequestPermission();
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("arkfit_push_dismissed", "true");
     }
   };
 
-  // Do not render anything during SSR
   if (!mounted) return null;
 
+  // 1. OWNER: Dashboard-first! Never block or distract the gym owner with push prompts.
+  if (role === "OWNER") {
+    return null;
+  }
+
+  // 2. If already granted, unsupported, or dismissed by user, do not show banner
+  if (status === "granted" || status === "unsupported" || isDismissed) {
+    if (successToast) {
+      return (
+        <div className="fixed bottom-4 right-4 z-50 p-3.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 className="w-4 h-4 text-white" />
+          <span>Push notifications enabled successfully!</span>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  // 3. TRAINER and MEMBER: Friendly, non-blocking notification banner
   return (
-    <>
-      {/* Success Toast when granted */}
-      {successToast && (
-        <div className="fixed top-4 right-4 z-[10000] bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-          <span>Web Push Notifications active! You will receive gym updates.</span>
-        </div>
-      )}
-
-      {/* Mandatory Blocking Gate Overlay */}
-      {isBlocked && (
-        <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 sm:p-8 text-center relative overflow-hidden my-auto">
-            {/* Top Accent Line */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-[#1E40AF] to-indigo-600" />
-
-            {/* Glowing Bell Badge */}
-            <div className="relative w-16 h-16 rounded-2xl bg-blue-50 text-[#1E40AF] flex items-center justify-center mx-auto mb-5 border border-blue-200 shadow-sm ring-8 ring-blue-50/60">
-              <Bell className="w-8 h-8 text-[#1E40AF]" />
-              <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-rose-500 ring-2 ring-white animate-ping" />
-              <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-rose-500 ring-2 ring-white" />
-            </div>
-
-            {/* Title & Personalized Greeting */}
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-              Please Allow Notifications
-            </h2>
-
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-              {userName ? `Hi ${userName}, to` : "To"} access your ARK FIT account, you must allow
-              browser push notifications. This ensures you never miss important gym updates.
-            </p>
-
-            {/* Benefit Highlights */}
-            <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2 text-left">
-              <div className="flex items-center gap-2.5 text-xs text-slate-700 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1E40AF] shrink-0" />
-                <span>
-                  {role === "TRAINER"
-                    ? "Athlete check-ins & PT booking alerts"
-                    : role === "OWNER"
-                    ? "Payment collections & floor live counts"
-                    : "Assigned workout splits & diet updates"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs text-slate-700 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1E40AF] shrink-0" />
-                <span>Immediate membership & fee expiry reminders</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs text-slate-700 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1E40AF] shrink-0" />
-                <span>Emergency gym announcements and operational updates</span>
-              </div>
-            </div>
-
-            {/* Error Message if any */}
-            {errorMessage && (
-              <div className="mt-3.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 text-left flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Interactive Flow */}
-            {status === "denied" ? (
-              <div className="mt-5 space-y-4">
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-900 space-y-2">
-                  <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                    <Lock className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Notifications are currently blocked</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-amber-800">
-                    Your browser has notifications set to <strong>Block</strong> for this site. To continue:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-amber-800 font-medium">
-                    <li>Click the 🔒 lock or settings icon in your browser URL bar.</li>
-                    <li>Change <strong>Notifications</strong> to <strong>Allow</strong>.</li>
-                    <li>Click the verify button below.</li>
-                  </ol>
-                </div>
-
-                <button
-                  onClick={handleVerifyPermission}
-                  className="w-full py-3 px-4 rounded-xl bg-[#1E40AF] hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>I've Allowed It - Verify Again</span>
-                </button>
-              </div>
-            ) : (
-              <div className="mt-6 space-y-3">
-                <button
-                  onClick={handleRequestPermission}
-                  disabled={status === "requesting"}
-                  className="w-full py-3 px-4 rounded-xl bg-[#1E40AF] hover:bg-blue-800 disabled:opacity-60 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {status === "requesting" ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Requesting Permission...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Bell className="w-4 h-4" />
-                      <span>Allow Notifications to Continue</span>
-                    </>
-                  )}
-                </button>
-
-                <p className="text-[11px] text-slate-400">
-                  Clicking "Allow Notifications" will trigger your browser's native permission prompt.
-                </p>
-              </div>
-            )}
+    <div className="bg-blue-50 border-b border-blue-200 px-4 py-2.5 sm:px-6 relative transition-all">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 text-xs text-blue-900">
+          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-[#1E40AF]">
+            <Bell className="w-3.5 h-3.5" />
           </div>
+          <p>
+            <strong className="font-semibold text-slate-900">
+              {userName ? `Hi ${userName}` : "Stay updated"}:
+            </strong>{" "}
+            {role === "TRAINER"
+              ? "Enable notifications to receive instant athlete check-in & PT appointment alerts."
+              : "Enable notifications to receive workout updates, PT reminders, and renewal receipts."}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          {status !== "denied" && (
+            <button
+              onClick={handleRequestPermission}
+              disabled={status === "requesting"}
+              className="h-7 px-3 rounded bg-[#1E40AF] hover:bg-blue-800 text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-60"
+            >
+              {status === "requesting" ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Enabling...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3 text-blue-200" />
+                  <span>Enable Notifications</span>
+                </>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={handleDismiss}
+            className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-blue-100/60 transition-colors"
+            title="Dismiss for now"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="max-w-7xl mx-auto mt-1 text-[11px] text-rose-600">
+          {errorMessage}
         </div>
       )}
-    </>
+    </div>
   );
 }

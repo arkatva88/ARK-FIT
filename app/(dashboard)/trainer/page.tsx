@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CompleteSessionButton } from "@/components/trainer/complete-session-button";
+import { PtSessionScheduleModal } from "@/components/trainer/pt-session-schedule-modal";
+import { PtSessionActionModal } from "@/components/trainer/pt-session-action-modal";
+import { MissedWorkoutsList } from "@/components/trainer/missed-workouts-list";
 
 export const revalidate = 15; // 15s refresh on trainer floor
 
@@ -41,16 +44,19 @@ export default async function TrainerDashboardPage() {
   const trainerProfile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
   const trainerName = trainerProfile?.full_name || "Coach";
 
-  // 1. Concurrently fetch Today's PT Sessions and Assigned Members in one roundtrip
+  // 1. Concurrently fetch Today's PT Sessions, Assigned Members, Missed Workouts, and Active PT Packages
   const [
     { data: todaySessions },
-    { data: myMembers }
+    { data: myMembers },
+    { data: missedWorkouts },
+    { data: activePackages }
   ] = await Promise.all([
     supabase
       .from("pt_sessions")
       .select(`
         id,
         session_number,
+        session_date,
         session_time,
         status,
         workout_notes,
@@ -88,11 +94,54 @@ export default async function TrainerDashboardPage() {
         )
       `)
       .eq("assigned_trainer_id", trainer.id)
+      .eq("status", "ACTIVE"),
+    supabase
+      .from("workout_schedules")
+      .select(`
+        id,
+        member_id,
+        workout_date,
+        day_name,
+        title,
+        status,
+        member:members (
+          id,
+          profiles (full_name, phone)
+        )
+      `)
+      .eq("status", "MISSED")
+      .order("workout_date", { ascending: false })
+      .limit(10),
+    supabase
+      .from("pt_packages")
+      .select(`
+        id,
+        member_id,
+        total_sessions,
+        remaining_sessions,
+        members (
+          id,
+          profiles (full_name, phone)
+        )
+      `)
+      .eq("trainer_id", trainer.id)
       .eq("status", "ACTIVE")
   ]);
 
   const totalAssigned = myMembers?.length || 0;
   const ptCount = myMembers?.filter((m) => m.member_type === "PT").length || 0;
+
+  const packageOptions = (activePackages || []).map((p: any) => {
+    const profile = Array.isArray(p.members?.profiles) ? p.members?.profiles[0] : p.members?.profiles;
+    return {
+      id: p.id,
+      memberId: p.member_id,
+      memberName: profile?.full_name || "Athlete",
+      phone: profile?.phone,
+      totalSessions: p.total_sessions,
+      remainingSessions: p.remaining_sessions,
+    };
+  });
 
   // 3. Attention alerts for Trainer
   const lowSessionMembers = myMembers?.filter((m) => {
@@ -112,23 +161,24 @@ export default async function TrainerDashboardPage() {
             Good morning, {trainerName}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Here is your coaching schedule and member focus for today, {formatDate(today)}.
+            Here is your coaching schedule, missed workout actions, and athlete focus for today, {formatDate(today)}.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <PtSessionScheduleModal packages={packageOptions} />
           <Link
             href="/trainer/pt-sessions"
             className="h-9 px-3.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-xs rounded flex items-center gap-2 transition-colors"
           >
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <span>View Floor Schedule</span>
+            <span>Floor Calendar</span>
           </Link>
           <Link
             href="/trainer/notes"
-            className="h-9 px-4 bg-[#1E40AF] text-white hover:bg-blue-800 font-medium text-xs rounded flex items-center gap-1.5 transition-colors shadow-sm"
+            className="h-9 px-3.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 font-medium text-xs rounded flex items-center gap-1.5 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Log Member Note</span>
+            <span>Log Note</span>
           </Link>
         </div>
       </section>
@@ -250,8 +300,27 @@ export default async function TrainerDashboardPage() {
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
                       </span>
+                    ) : session.status === "CANCELLED" ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold uppercase">
+                        Cancelled
+                      </span>
+                    ) : session.status === "RESCHEDULED" ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 font-semibold uppercase">
+                        Rescheduled
+                      </span>
                     ) : (
-                      <CompleteSessionButton sessionId={session.id} />
+                      <>
+                        <CompleteSessionButton sessionId={session.id} />
+                        <PtSessionActionModal
+                          session={{
+                            id: session.id,
+                            sessionNumber: session.session_number,
+                            sessionDate: session.session_date,
+                            sessionTime: session.session_time,
+                            memberName: memberProfile?.full_name || "Athlete",
+                          }}
+                        />
+                      </>
                     )}
 
                     <Link
@@ -271,6 +340,9 @@ export default async function TrainerDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* 4. MISSED WORKOUTS NEATION ACTION */}
+      <MissedWorkoutsList workouts={missedWorkouts || []} />
 
       {/* 4. ATTENTION REQUIRED: Low Session Quotas */}
       {lowSessionMembers.length > 0 && (

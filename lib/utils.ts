@@ -6,9 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string = "INR") {
-  return new Intl.NumberFormat("en-IN", {
+  const currencyLocales: Record<string, string> = {
+    INR: "en-IN",
+    USD: "en-US",
+    EUR: "en-IE",
+    GBP: "en-GB",
+    AED: "en-AE",
+    SGD: "en-SG",
+    AUD: "en-AU",
+    CAD: "en-CA",
+  };
+  const locale = currencyLocales[currency?.toUpperCase()] || "en-IN";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: currency,
+    currency: currency || "INR",
     maximumFractionDigits: 0,
   }).format(amount);
 }

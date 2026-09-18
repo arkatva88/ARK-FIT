@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     // Strict validation of all payment identifiers
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json(
-        { error: "Missing required payment parameters (order_id, payment_id, signature)" },
+        { error: "Missing required payment verification parameters (order_id, payment_id, signature)" },
         { status: 400 }
       );
     }
@@ -62,17 +62,10 @@ export async function POST(req: Request) {
 
     const admin = createAdminClient();
 
-    // Verify authenticated member ownership of this order
-    const { data: member } = await admin
-      .from("members")
-      .select("id, gym_id, profile_id")
-      .eq("profile_id", user.id)
-      .single();
-
     // Fetch existing payment record
     const { data: payment, error: fetchErr } = await admin
       .from("payments")
-      .select("id, member_id, membership_id, pt_package_id, status")
+      .select("id, gym_id, member_id, membership_id, pt_package_id, status, amount, currency")
       .eq("razorpay_order_id", razorpay_order_id)
       .single();
 
@@ -80,22 +73,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order record not found" }, { status: 404 });
     }
 
-    // Security check: verify this payment belongs to the calling user (or user is owner)
+    // Fetch caller profile and member record to ensure tenant isolation
     const { data: profile } = await admin
       .from("profiles")
-      .select("role")
+      .select("role, gym_id")
       .eq("id", user.id)
       .single();
 
-    const isOwner = profile?.role === "OWNER";
-    if (!isOwner && member && payment.member_id !== member.id) {
+    const { data: member } = await admin
+      .from("members")
+      .select("id, gym_id, profile_id, membership_expiry, profiles(full_name)")
+      .eq("id", payment.member_id)
+      .single();
+
+    const isOwner = profile?.role === "OWNER" && profile.gym_id === payment.gym_id;
+    const isPayingMember = member?.profile_id === user.id;
+
+    if (!isOwner && !isPayingMember) {
       return NextResponse.json(
-        { error: "Forbidden: payment does not belong to authenticated user" },
+        { error: "Forbidden: payment record does not belong to authenticated user" },
         { status: 403 }
       );
     }
 
-    // Idempotency: if already PAID, return success immediately
+    // Idempotency: if already PAID, return success immediately without double-extending
     if (payment.status === "PAID") {
       return NextResponse.json({
         success: true,
@@ -121,12 +122,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Extend membership if payment was for membership renewal
-    if (payment.membership_id) {
-      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+    // Authoritative Safe Expiry Calculation
+    // Scenario 1: Paying before expiry -> preserve remaining days (current_expiry + 30 days)
+    // Scenario 2: Paying after expiry -> start from today (today + 30 days)
+    const todayStr = new Date().toISOString().split("T")[0];
+    let newExpiry: string;
 
+    if (member?.membership_expiry && new Date(member.membership_expiry) >= new Date(todayStr)) {
+      const base = new Date(member.membership_expiry);
+      base.setDate(base.getDate() + 30);
+      newExpiry = base.toISOString().split("T")[0];
+    } else {
+      const base = new Date(todayStr);
+      base.setDate(base.getDate() + 30);
+      newExpiry = base.toISOString().split("T")[0];
+    }
+
+    // Update membership and member records
+    if (payment.membership_id) {
       await admin
         .from("memberships")
         .update({
@@ -134,60 +147,77 @@ export async function POST(req: Request) {
           expiry_date: newExpiry,
         })
         .eq("id", payment.membership_id);
+    }
 
+    if (member) {
       await admin
         .from("members")
         .update({
           status: "ACTIVE",
           membership_expiry: newExpiry,
         })
-        .eq("id", payment.member_id);
+        .eq("id", member.id);
     }
 
-    // Asynchronously trigger idempotent payment confirmation notifications
-    // (Separation of concerns: push failures never rollback verified payment)
+    // If payment was for a PT package, activate the package
+    if (payment.pt_package_id) {
+      const pkgExpiry = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+
+      await admin
+        .from("pt_packages")
+        .update({
+          status: "ACTIVE",
+          expiry_date: pkgExpiry,
+        })
+        .eq("id", payment.pt_package_id);
+    }
+
+    // Decoupled notification dispatch (notification failure NEVER rolls back verified payment)
     (async () => {
       try {
         if (member?.profile_id) {
           const memberDedupKey = `PAYMENT_CONFIRMATION:${payment.id}:${member.profile_id}`;
           const { event } = await enqueueNotificationEvent({
-            gymId: member.gym_id,
+            gymId: payment.gym_id,
             userId: member.profile_id,
             type: "PAYMENT_RECEIVED",
             title: "ARK FIT - Payment Confirmed!",
-            body: "Your gym membership payment has been confirmed. Your access is active!",
+            body: `Your payment of ${payment.currency} ${payment.amount} is verified. Your gym membership is active until ${newExpiry}!`,
             url: "/member/payments",
             referenceType: "payment",
             referenceId: payment.id,
             deduplicationKey: memberDedupKey,
-            data: { paymentId: payment.id, orderId: razorpay_order_id },
+            data: { paymentId: payment.id, orderId: razorpay_order_id, newExpiry },
           });
 
           if (event) {
             await dispatchSingleEvent(event.id);
           }
 
-          // Also trigger operational notification for gym owner
+          // Operational alert for gym owner
           const { data: owner } = await admin
             .from("profiles")
             .select("id")
-            .eq("gym_id", member.gym_id)
+            .eq("gym_id", payment.gym_id)
             .eq("role", "OWNER")
             .maybeSingle();
 
           if (owner?.id) {
+            const memberName = (member as any)?.profiles?.full_name || "Member";
             const ownerDedupKey = `OWNER_PAYMENT_COLLECTED:${payment.id}:${owner.id}`;
             const { event: ownerEvent } = await enqueueNotificationEvent({
-              gymId: member.gym_id,
+              gymId: payment.gym_id,
               userId: owner.id,
               type: "PAYMENT_RECEIVED",
-              title: "ARK FIT - New Payment Collected",
-              body: `Payment confirmed for order #${razorpay_order_id.slice(-6)}.`,
+              title: "ARK FIT - Fee Collected",
+              body: `${memberName} paid ${payment.currency} ${payment.amount} online. Access extended to ${newExpiry}.`,
               url: "/owner/payments",
               referenceType: "payment",
               referenceId: payment.id,
               deduplicationKey: ownerDedupKey,
-              data: { paymentId: payment.id },
+              data: { paymentId: payment.id, memberId: member.id },
             });
 
             if (ownerEvent) {
@@ -196,13 +226,14 @@ export async function POST(req: Request) {
           }
         }
       } catch (notifyErr) {
-        console.error("Payment confirmation notification error:", notifyErr);
+        console.error("Payment confirmation notification failed (payment remains valid):", notifyErr);
       }
     })();
 
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
+      newExpiry,
     });
   } catch (error: any) {
     return NextResponse.json(
